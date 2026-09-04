@@ -1,0 +1,14 @@
+.vs/
+.idea/
+**/bin/
+**/obj/
+artifacts/
+TestResults/
+*.user
+*.suo
+tools/downloads/
+tools/ffmpeg/
+tools/ffmpeg-package/
+tools/ffmpeg-pinned/
+tools/ffmpeg-extract/
+dotnet-install.ps1

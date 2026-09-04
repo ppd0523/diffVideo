@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DiffVideo.App/DiffVideo.App.csproj" />
+    <Project Path="src/DiffVideo.Core/DiffVideo.Core.csproj" />
+    <Project Path="src/DiffVideo.Infrastructure/DiffVideo.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DiffVideo.Core.Tests/DiffVideo.Core.Tests.csproj" />
+  </Folder>
+</Solution>
