@@ -63,8 +63,19 @@ public sealed class VideoTrackViewModel : ObservableObject
     public int RoiY { get => _roiY; set => SetRoi(new(RoiX, value, RoiWidth, RoiHeight)); }
     public int RoiWidth { get => _roiWidth; set => SetRoi(new(RoiX, RoiY, value, RoiHeight)); }
     public int RoiHeight { get => _roiHeight; set => SetRoi(new(RoiX, RoiY, RoiWidth, value)); }
-    public int DestinationX { get => _destinationX; set => SetProperty(ref _destinationX, Math.Max(0, value)); }
-    public int DestinationY { get => _destinationY; set => SetProperty(ref _destinationY, Math.Max(0, value)); }
+    public int DestinationX { get => _destinationX; set => SetProperty(ref _destinationX, value); }
+    public int DestinationY { get => _destinationY; set => SetProperty(ref _destinationY, value); }
+
+    public void SetDestination(PixelRect rectangle)
+    {
+        var previous = new PixelRect(_destinationX, _destinationY, _destinationWidth, _destinationHeight);
+        (_destinationX, _destinationY, _destinationWidth, _destinationHeight) =
+            (rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
+        if (previous.X != rectangle.X) { OnPropertyChanged(nameof(DestinationX)); }
+        if (previous.Y != rectangle.Y) { OnPropertyChanged(nameof(DestinationY)); }
+        if (previous.Width != rectangle.Width) { OnPropertyChanged(nameof(DestinationWidth)); }
+        if (previous.Height != rectangle.Height) { OnPropertyChanged(nameof(DestinationHeight)); }
+    }
 
     public int DestinationWidth
     {

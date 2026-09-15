@@ -31,7 +31,8 @@ public partial class MainWindow
             TimelineView.Reveal(ViewModel.PlayheadSeconds);
         }
         if (e.PropertyName is nameof(MainViewModel.PlayheadSeconds) or nameof(MainViewModel.PlaybackStartSeconds)
-            or nameof(MainViewModel.OutputDurationSeconds) or nameof(MainViewModel.IsPlaying)) { UpdateTimeline(); }
+            or nameof(MainViewModel.OutputDurationSeconds) or nameof(MainViewModel.IsPlaying)
+            or nameof(MainViewModel.ExportStartSeconds) or nameof(MainViewModel.ExportEndSeconds)) { UpdateTimeline(); }
     }
 
     private void Timeline_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateTimeline();
@@ -59,6 +60,7 @@ public partial class MainWindow
             Canvas.SetLeft(PlayheadBar, TimelineView.Position(vm.PlayheadSeconds) - 6);
             PlayheadBar.Height = Math.Max(0, TimelineViewportHost.ActualHeight - 8);
             Canvas.SetLeft(PlaybackStartFlag, TimelineView.Position(vm.PlaybackStartSeconds));
+            UpdateExportRangeMarkers();
             ZoomInButton.IsEnabled = TimelineView.PixelsPerSecond < Math.Max(240, TimelineView.Width / TimelineView.Duration) - 0.001;
             ZoomOutButton.IsEnabled = !TimelineView.IsFit;
         }

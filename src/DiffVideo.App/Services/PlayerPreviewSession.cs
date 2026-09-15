@@ -144,7 +144,7 @@ public sealed class PlayerPreviewSession : IDisposable
         if (_layoutComposition is { } composition) { ApplyLayout(composition); }
     }
 
-    private void ApplyLayout(Composition composition)
+    public void ApplyLayout(Composition composition)
     {
         _layoutComposition = composition;
         _canvas.Children.Clear();

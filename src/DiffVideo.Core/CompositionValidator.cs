@@ -66,6 +66,11 @@ public static class CompositionValidator
         {
             issues.Add(new("OUTPUT_DURATION", "출력 종료 시각은 0초보다 커야 합니다."));
         }
+        if (output.ExportStart < TimeSpan.Zero || output.EffectiveExportEnd > output.Duration ||
+            output.EffectiveExportEnd <= output.ExportStart)
+        {
+            issues.Add(new("EXPORT_RANGE", "내보내기 구간은 전체 타임라인 안에서 시작보다 종료가 뒤에 있어야 합니다."));
+        }
     }
 
     private static void ValidateVideo(VideoTrack track, string prefix, OutputSettings output, ICollection<ValidationIssue> issues)
@@ -88,10 +93,10 @@ public static class CompositionValidator
         }
 
         var destination = track.Destination;
-        if (destination.Width <= 0 || destination.Height <= 0 || destination.X < 0 || destination.Y < 0 ||
-            (long)destination.X + destination.Width > output.Width || (long)destination.Y + destination.Height > output.Height)
+        if (destination.Width <= 0 || destination.Height <= 0 ||
+            (long)destination.X + destination.Width > int.MaxValue || (long)destination.Y + destination.Height > int.MaxValue)
         {
-            issues.Add(new($"{prefix}_DESTINATION", "영상 배치 영역은 출력 캔버스 안에 있어야 합니다."));
+            issues.Add(new($"{prefix}_DESTINATION", "영상 배치 크기는 양수이며 좌표 계산 범위 안에 있어야 합니다."));
         }
 
         ValidateVolume(track.Volume, $"{prefix}_VOLUME", issues);

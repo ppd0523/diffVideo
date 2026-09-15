@@ -51,13 +51,13 @@ public sealed class FfmpegExportService(FfmpegPaths paths)
                 DeleteIfExists(temporaryPath);
                 var invocation = FfmpegCommandBuilder.BuildExport(composition, temporaryPath, encoder, labels);
                 var stopwatch = Stopwatch.StartNew();
-                var result = await RunExportProcessAsync(invocation, composition.Output.Duration, encoder, progress, cancellationToken).ConfigureAwait(false);
+                var result = await RunExportProcessAsync(invocation, composition.Output.ExportDuration, encoder, progress, cancellationToken).ConfigureAwait(false);
                 stopwatch.Stop();
 
                 if (result.ExitCode == 0 && File.Exists(temporaryPath) && new FileInfo(temporaryPath).Length > 0)
                 {
                     File.Move(temporaryPath, outputPath, overwrite);
-                    progress?.Report(new(1, composition.Output.Duration, EncoderName(encoder), "내보내기 완료"));
+                    progress?.Report(new(1, composition.Output.ExportDuration, EncoderName(encoder), "내보내기 완료"));
                     return new(outputPath, encoder, stopwatch.Elapsed);
                 }
 

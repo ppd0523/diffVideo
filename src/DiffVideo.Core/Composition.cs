@@ -44,7 +44,13 @@ public sealed record OutputSettings(
     int Height,
     int FramesPerSecond,
     TimeSpan Duration,
-    OutputQuality Quality);
+    OutputQuality Quality)
+{
+    public TimeSpan ExportStart { get; init; } = TimeSpan.Zero;
+    public TimeSpan? ExportEnd { get; init; }
+    public TimeSpan EffectiveExportEnd => ExportEnd ?? Duration;
+    public TimeSpan ExportDuration => EffectiveExportEnd - ExportStart;
+}
 
 public sealed record Composition(
     VideoTrack Video1,

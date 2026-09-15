@@ -43,7 +43,7 @@ internal static partial class PreviewDiagnostics
         Assert(Math.Abs(window.TimelineVideo1.ActualHeight - window.TimelineAudio.ActualHeight) < 1, "Rows share added height equally");
         SaveScreenshot(window, Path.ChangeExtension(report, ".expanded.png"));
         window.ResizeTimelineHeight(1); window.ResizeTimelineLabels(204); window.UpdateLayout();
-        Assert(Math.Abs(window.TimelineRow.ActualHeight - 224) < 1, "Height minimum");
+        Assert(Math.Abs(window.TimelineRow.ActualHeight - window.TimelineRow.MinHeight) < 1, "Height minimum");
         window.ScrollTimeline(200, true);
         Assert(vm.PlayheadSeconds == 30 && !window.TimelineAutoFollow, "Manual scrolling does not seek and disables follow");
         await vm.StartPlaybackAsync();

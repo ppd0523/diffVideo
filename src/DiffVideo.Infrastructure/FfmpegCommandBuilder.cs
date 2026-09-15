@@ -25,6 +25,16 @@ public static class FfmpegCommandBuilder
             arguments.AddRange(["-loop", "1", "-framerate", composition.Output.FramesPerSecond.ToString(Invariant), "-i", label.Path]);
         }
         var graph = BuildFilterGraph(composition, includeAudio: true, labels);
+        if (composition.Output.ExportStart != TimeSpan.Zero || composition.Output.EffectiveExportEnd != composition.Output.Duration)
+        {
+            var start = Seconds(composition.Output.ExportStart.TotalSeconds);
+            var end = Seconds(composition.Output.EffectiveExportEnd.TotalSeconds);
+            var fps = composition.Output.FramesPerSecond;
+            var startFrame = (long)Math.Round(composition.Output.ExportStart.TotalSeconds * fps);
+            var endFrame = (long)Math.Ceiling(composition.Output.EffectiveExportEnd.TotalSeconds * fps - 0.00001);
+            graph = ($"{graph.FilterGraph};[{graph.VideoLabel}]trim=start_frame={startFrame}:end_frame={endFrame},setpts=PTS-STARTPTS[exportvideo];" +
+                $"[{graph.AudioLabel}]atrim=start={start}:end={end},asetpts=PTS-STARTPTS[exportaudio]", "exportvideo", "exportaudio");
+        }
         arguments.AddRange(["-filter_complex", graph.FilterGraph, "-map", $"[{graph.VideoLabel}]", "-map", $"[{graph.AudioLabel}]"]);
 
         AddEncoderArguments(arguments, composition, encoder);
@@ -34,7 +44,7 @@ public static class FfmpegCommandBuilder
             "-ar", "48000",
             "-ac", "2",
             "-movflags", "+faststart",
-            "-t", Seconds(composition.Output.Duration.TotalSeconds),
+            "-t", Seconds(composition.Output.ExportDuration.TotalSeconds),
             "-f", "mp4",
             "-progress", "pipe:2",
             "-nostats",

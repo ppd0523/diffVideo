@@ -17,8 +17,9 @@ public partial class MainWindow : Window
 {
     private VideoTrackViewModel? _overlayDragTrack;
     private Point _overlayDragOrigin;
-    private int _overlayInitialX;
-    private int _overlayInitialY;
+    private PixelRect _overlayInitial;
+    private RoiEdges _overlayEdges;
+    private Border? _overlayDragBorder;
     private object? _timelineDragTrack;
     private Border? _timelineDragBorder;
     private TextBlock? _timelineDragStartLabel;
@@ -38,6 +39,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializePlacementHandles();
         try
         {
             ViewModel = new(FfmpegPaths.Discover());
@@ -49,6 +51,8 @@ public partial class MainWindow : Window
                     e.PropertyName == nameof(MainViewModel.IsPlaying) && ViewModel.IsPlaying)
                 {
                     CancelPreviewRoi();
+                    CancelOverlayDrag();
+                    CancelExportRangeDrag();
                 }
             };
         }
@@ -179,7 +183,12 @@ public partial class MainWindow : Window
         if (!PreviewLogicalCanvas.IsMouseCaptured) { CancelPreviewRoi(); }
     }
 
-    private void PreviewDropHost_SizeChanged(object sender, SizeChangedEventArgs e) => CancelPreviewRoi();
+    private void PreviewDropHost_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        CancelPreviewRoi();
+        CancelOverlayDrag();
+        CancelExportRangeDrag();
+    }
 
     private async void ResetRoi_Click(object sender, RoutedEventArgs e)
     {
@@ -252,7 +261,7 @@ public partial class MainWindow : Window
         }
 
         Composition snapshot;
-        try { snapshot = ViewModel.BuildComposition(); }
+        try { snapshot = ViewModel.BuildExportComposition(); }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or OverflowException)
         {
             ViewModel.ReportInteraction("설정값을 확인해 주세요.", exception.Message);
@@ -349,37 +358,40 @@ public partial class MainWindow : Window
             return;
         }
 
-        ViewModel.SelectVideo(track);
-        PreviewLogicalCanvas.Focus();
-        _overlayDragTrack = track;
-        _overlayDragOrigin = e.GetPosition(PreviewLogicalCanvas);
-        _overlayInitialX = track.DestinationX;
-        _overlayInitialY = track.DestinationY;
-        border.CaptureMouse();
+        BeginOverlayDrag(border, e.GetPosition(PreviewLogicalCanvas), PlacementEdges(border, e.GetPosition(border)));
         e.Handled = true;
     }
 
     private void Overlay_MouseMove(object sender, MouseEventArgs e)
     {
-        if (ViewModel is null || _overlayDragTrack is null || e.LeftButton != MouseButtonState.Pressed)
+        if (sender is Border hovered && _overlayDragTrack is null)
+        {
+            hovered.Cursor = PlacementCursor(PlacementEdges(hovered, e.GetPosition(hovered)));
+        }
+        if (ViewModel is not { IsEditingEnabled: true } || _overlayDragTrack is null || e.LeftButton != MouseButtonState.Pressed)
         {
             return;
         }
 
         var position = e.GetPosition(PreviewLogicalCanvas);
         var delta = position - _overlayDragOrigin;
-        _overlayDragTrack.DestinationX = Math.Clamp(_overlayInitialX + (int)Math.Round(delta.X), 0, Math.Max(0, ViewModel.CanvasWidth - _overlayDragTrack.DestinationWidth));
-        _overlayDragTrack.DestinationY = Math.Clamp(_overlayInitialY + (int)Math.Round(delta.Y), 0, Math.Max(0, ViewModel.CanvasHeight - _overlayDragTrack.DestinationHeight));
+        UpdateOverlayDrag(delta.X, delta.Y);
+        e.Handled = true;
     }
 
     private async void Overlay_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        if (_overlayDragTrack is null) { return; }
+        var delta = e.GetPosition(PreviewLogicalCanvas) - _overlayDragOrigin;
+        UpdateOverlayDrag(delta.X, delta.Y);
+        _overlayDragTrack = null;
+        _overlayDragBorder = null;
         if (sender is Border border)
         {
             border.ReleaseMouseCapture();
         }
 
-        _overlayDragTrack = null;
+        e.Handled = true;
         if (ViewModel is not null)
         {
             await ViewModel.RefreshStillPreviewAsync();
@@ -547,6 +559,18 @@ public partial class MainWindow : Window
 
     private async void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Escape && _exportRangeThumb is not null)
+        {
+            CancelExportRangeDrag();
+            e.Handled = true;
+            return;
+        }
+        if (e.Key == Key.Escape && _overlayDragTrack is not null)
+        {
+            CancelOverlayDrag();
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.Escape && IsRoiDragging)
         {
             CancelPreviewRoi();
@@ -567,7 +591,7 @@ public partial class MainWindow : Window
     {
         if (_spaceHeld || isRepeat) { return; }
         _spaceHeld = true;
-        if (ViewModel is null || IsRoiDragging || _timelineDragActive || _overlayDragTrack is not null || _playheadDragging || Mouse.Captured is not null) { return; }
+        if (ViewModel is null || IsRoiDragging || _timelineDragActive || _overlayDragTrack is not null || _playheadDragging || _exportRangeThumb is not null || Mouse.Captured is not null) { return; }
         if (ViewModel.IsPlaying) { await ViewModel.PausePlaybackAsync(); }
         else { await ViewModel.StartPlaybackAsync(); }
     }
@@ -581,6 +605,8 @@ public partial class MainWindow : Window
     {
         _spaceHeld = false;
         CancelPreviewRoi();
+        CancelOverlayDrag();
+        CancelExportRangeDrag();
     }
 
     internal static bool IsTextEntry(DependencyObject? element)

@@ -9,7 +9,7 @@ using DiffVideo.Infrastructure;
 
 namespace DiffVideo.App.ViewModels;
 
-public sealed class MainViewModel : ObservableObject, IDisposable
+public sealed partial class MainViewModel : ObservableObject, IDisposable
 {
     private readonly MediaProbeService _probeService;
     private readonly FfmpegPreviewService _previewService;
@@ -91,7 +91,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var normalized = CompositionValidator.NormalizeEvenDimension(value, 16, 3840);
             if (SetProperty(ref _canvasWidth, normalized))
             {
-                ClampDestinations();
                 OnPropertyChanged(nameof(CanvasSizeText));
                 QueuePropertyPreview();
             }
@@ -106,7 +105,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var normalized = CompositionValidator.NormalizeEvenDimension(value, 16, 2160);
             if (SetProperty(ref _canvasHeight, normalized))
             {
-                ClampDestinations();
                 OnPropertyChanged(nameof(CanvasSizeText));
                 QueuePropertyPreview();
             }
@@ -290,20 +288,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public void MoveSelectedLayer(bool forward)
     {
-        if (IsPlaying)
-        {
-            return;
-        }
+        FrontVideoIndex = ReferenceEquals(forward ? SelectedVideo : OtherVideo(SelectedVideo), Video1) ? 1 : 2;
+    }
 
-        if (forward)
+    public IReadOnlyList<Choice<int>> FrontVideoChoices { get; } =
+    [new("A · 영상 1", 1), new("B · 영상 2", 2)];
+
+    public int FrontVideoIndex
+    {
+        get => Video1.ZIndex > Video2.ZIndex ? 1 : 2;
+        set
         {
-            SelectedVideo.ZIndex = 1;
-            OtherVideo(SelectedVideo).ZIndex = 0;
-        }
-        else
-        {
-            SelectedVideo.ZIndex = 0;
-            OtherVideo(SelectedVideo).ZIndex = 1;
+            if (!IsEditingEnabled || value is not (1 or 2) || value == FrontVideoIndex) { return; }
+            _suppressTrackPreview = true;
+            try
+            {
+                Video1.ZIndex = value == 1 ? 1 : 0;
+                Video2.ZIndex = value == 2 ? 1 : 0;
+            }
+            finally { _suppressTrackPreview = false; }
+            OnPropertyChanged(nameof(FrontVideoIndex));
+            UpdatePlacementPreview();
+            Status = $"{(value == 1 ? "A · 영상 1" : "B · 영상 2")}을 위에 표시합니다.";
         }
     }
 
@@ -567,7 +573,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public Task ExportAsync(string outputPath, bool overwrite = false)
     {
-        return TryBuildComposition(out var snapshot) ? ExportAsync(snapshot, outputPath, overwrite) : Task.CompletedTask;
+        return TryBuildComposition(out var snapshot) ? ExportAsync(WithExportRange(snapshot), outputPath, overwrite) : Task.CompletedTask;
     }
 
     public Task ExportAsync(Composition snapshot, string outputPath, bool overwrite = false)
@@ -799,6 +805,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void TrackPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
+        if (!_suppressTrackPreview && eventArgs.PropertyName == nameof(VideoTrackViewModel.ZIndex))
+        {
+            OnPropertyChanged(nameof(FrontVideoIndex));
+        }
         if (_suppressTrackPreview || eventArgs.PropertyName is nameof(VideoTrackViewModel.IsSelected) or nameof(VideoTrackViewModel.DisplayName) or nameof(VideoTrackViewModel.Details))
         {
             return;
@@ -860,6 +870,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void ResnapTimelineForOutputChange()
     {
+        NormalizeExportRange();
         _suppressTrackPreview = true;
         try
         {
@@ -905,6 +916,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CanStop));
         OnPropertyChanged(nameof(CanNavigate));
         OnPropertyChanged(nameof(CanSetPlaybackStart));
+        OnPropertyChanged(nameof(CanEditExportRange));
         OnPropertyChanged(nameof(CanStartExport));
     }
 
@@ -958,14 +970,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _ => 0
     };
 
-    private void ClampDestinations()
+    public void UpdatePlacementPreview()
     {
-        foreach (var track in new[] { Video1, Video2 })
+        _propertyPreviewDebounceCancellation?.Cancel();
+        _stillCancellation?.Cancel();
+        CancelInteractivePreview();
+        if (IsEditingEnabled && HasComposition && TryBuildComposition(out var composition))
         {
-            track.DestinationWidth = Math.Min(track.DestinationWidth, CanvasWidth);
-            track.DestinationHeight = Math.Min(track.DestinationHeight, CanvasHeight);
-            track.DestinationX = Math.Min(track.DestinationX, Math.Max(0, CanvasWidth - track.DestinationWidth));
-            track.DestinationY = Math.Min(track.DestinationY, Math.Max(0, CanvasHeight - track.DestinationHeight));
+            _playerPreview.ApplyLayout(composition);
         }
     }
 

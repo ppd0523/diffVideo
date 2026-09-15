@@ -10,6 +10,13 @@
         <conv:TimelinePositionConverter x:Key="TimelinePosition" />
         <conv:TimelineWidthConverter x:Key="TimelineWidth" />
         <conv:ClipHeightConverter x:Key="ClipHeight" />
+        <Style x:Key="ExportBoundaryThumb" TargetType="Thumb">
+            <Setter Property="Width" Value="14"/><Setter Property="Height" Value="22"/>
+            <Setter Property="Cursor" Value="SizeWE"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Thumb">
+                <Border Background="#9B6500" CornerRadius="2"><TextBlock Text="{TemplateBinding Tag}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
         <Style x:Key="MediaSelector" TargetType="Button" BasedOn="{StaticResource CompactButton}">
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="BorderBrush" Value="{StaticResource InkBrush}" />
@@ -54,7 +61,7 @@
         </Style>
     </Window.Resources>
     <Grid x:Name="MainRootGrid">
-<Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="6"/><RowDefinition x:Name="TimelineRow" Height="224" MinHeight="224"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+<Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="6"/><RowDefinition x:Name="TimelineRow" Height="264" MinHeight="264"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <Border Grid.Row="0" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,1,0,1" Padding="12,6">
             <DockPanel x:Name="CommandBar">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
@@ -90,7 +97,7 @@
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="8" /><ColumnDefinition Width="216" /></Grid.ColumnDefinitions>
                 <Border x:Name="PreviewDropHost" Grid.Column="0" Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="4"
                         AllowDrop="True" Drop="Preview_Drop" DragOver="Preview_DragOver" DragLeave="Preview_DragLeave" SizeChanged="PreviewDropHost_SizeChanged"
-                        ToolTip="영상을 클릭해 선택한 다음 오른쪽 버튼으로 드래그하여 ROI 지정 · Esc 취소 · Space 재생/일시정지">
+                        ToolTip="정지·일시정지: 왼쪽 드래그로 이동 · 변/모서리로 크기 조절 · 오른쪽 드래그로 ROI 지정 · Esc 취소 · Space 재생/일시정지">
                     <Grid>
                         <Viewbox Stretch="Uniform">
                             <Grid x:Name="PreviewLogicalCanvas" Width="{Binding CanvasWidth}" Height="{Binding CanvasHeight}" Background="Black" Focusable="True"
@@ -144,13 +151,17 @@
                 </Border>
             <Border x:Name="InspectorPanel" Grid.Column="2" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="16" Padding="10" IsEnabled="{Binding IsEditingEnabled}">
                 <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="40" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="40" /><RowDefinition Height="Auto"/><RowDefinition Height="*" /></Grid.RowDefinitions>
                     <StackPanel Orientation="Horizontal">
                         <Border DataContext="{Binding Video1}" Margin="0,0,8,0"><Button Style="{StaticResource MediaSelector}" Click="MediaVideo_Click" ToolTip="영상 1 선택" AutomationProperties.Name="영상 1 선택"><StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" /><TextBlock Text="1" Margin="8,0,0,0" VerticalAlignment="Center" /></StackPanel></Button></Border>
                         <Border DataContext="{Binding Video2}"><Button Style="{StaticResource MediaSelector}" Click="MediaVideo_Click" ToolTip="영상 2 선택" AutomationProperties.Name="영상 2 선택"><StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" /><TextBlock Text="2" Margin="8,0,0,0" VerticalAlignment="Center" /></StackPanel></Button></Border>
                         <Button x:Name="ResetRoiButton" Content="{StaticResource Icon.CropFree}" Style="{StaticResource MaterialIconButton}" ToolTip="선택 영상의 ROI를 원본 전체로 복원" Click="ResetRoi_Click" IsEnabled="{Binding SelectedVideo.HasMedia}" Margin="8,0,0,0" />
                     </StackPanel>
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <DockPanel Grid.Row="1" Margin="0,4,0,10" ToolTip="겹치는 부분에서 위에 표시할 영상 · A=영상 1, B=영상 2 · 내보내기에도 적용">
+                        <TextBlock Text="위에 표시" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="FrontVideoCombo" ItemsSource="{Binding FrontVideoChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding FrontVideoIndex, Mode=TwoWay}" AutomationProperties.Name="위에 표시할 영상"/>
+                    </DockPanel>
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel DataContext="{Binding SelectedVideo}">
                         <TextBlock Text="{Binding DataContext.SelectedVideoTitle, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource SectionTitle}" FontSize="16" Margin="0,0,0,4" />
                         <TextBlock Text="{Binding DisplayName}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Details}" Margin="0,0,0,12" />
@@ -184,7 +195,7 @@
 <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent"><Border Width="64" Height="2" Background="{StaticResource HairlineBrush}" VerticalAlignment="Center"/></Border></ControlTemplate></Thumb.Template></Thumb>
 <Border Grid.Row="3" Margin="12,0,12,6" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="12" Padding="10,4,10,2">
 <Grid x:Name="IntegratedTimeline" ClipToBounds="True" SizeChanged="Timeline_SizeChanged">
-<Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+<Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <Grid x:Name="TransportBar" Grid.Row="0" >
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" Grid.Column="0" HorizontalAlignment="Left">
@@ -206,7 +217,18 @@
 <Button x:Name="ZoomInButton" Content="{StaticResource Icon.Add}" Style="{StaticResource MaterialIconButton}" ToolTip="타임라인 확대" Click="ZoomIn_Click"/>
 <Button x:Name="FitTimelineButton" Content="{StaticResource Icon.AspectRatio}" Style="{StaticResource MaterialIconButton}" ToolTip="타임라인 전체 보기" Click="FitTimeline_Click"/>
 </StackPanel></Grid>
-<Grid x:Name="TimelineBody" Grid.Row="1">
+<WrapPanel x:Name="ExportRangeToolbar" Grid.Row="1" Margin="0,2,0,6" IsEnabled="{Binding CanEditExportRange}">
+    <TextBlock Text="내보내기 구간" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+    <TextBlock Text="시작" VerticalAlignment="Center" Margin="0,0,6,0"/>
+    <TextBox x:Name="ExportStartInput" Width="80" Text="{Binding ExportStartSeconds, StringFormat=F3, UpdateSourceTrigger=LostFocus}" ToolTip="내보내기 시작 (초)" AutomationProperties.Name="내보내기 시작 시각"/>
+    <Button x:Name="SetExportStartButton" Content="현재 → 시작" Click="SetExportStart_Click" ToolTip="현재 재생 위치를 내보내기 시작으로 지정" Padding="8,4" Margin="4,0,12,0"/>
+    <TextBlock Text="종료" VerticalAlignment="Center" Margin="0,0,6,0"/>
+    <TextBox x:Name="ExportEndInput" Width="80" Text="{Binding ExportEndSeconds, StringFormat=F3, UpdateSourceTrigger=LostFocus}" ToolTip="내보내기 종료 경계 (초) · 이 시각 직전까지 저장" AutomationProperties.Name="내보내기 종료 시각"/>
+    <Button x:Name="SetExportEndButton" Content="현재 → 종료" Click="SetExportEnd_Click" ToolTip="현재 재생 위치를 종료 경계로 지정 · 이 시각 직전까지 저장" Padding="8,4" Margin="4,0,8,0"/>
+    <Button x:Name="ResetExportRangeButton" Content="전체 구간" Click="ResetExportRange_Click" ToolTip="0초부터 전체 종료까지 복원" Padding="8,4" Margin="0,0,12,0"/>
+    <TextBlock Text="{Binding ExportRangeText}" VerticalAlignment="Center" FontSize="12"/>
+</WrapPanel>
+<Grid x:Name="TimelineBody" Grid.Row="2">
 <Grid.ColumnDefinitions><ColumnDefinition x:Name="TimelineLabelColumn" Width="204" MinWidth="180"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
 <Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="*"/><RowDefinition Height="*"/><RowDefinition Height="*"/><RowDefinition Height="32"/><RowDefinition Height="16"/></Grid.RowDefinitions>
 <ContentControl Content="{StaticResource Icon.ViewTimeline}" Style="{StaticResource MaterialIcon}" ToolTip="통합 타임라인" HorizontalAlignment="Left" Width="18" Height="18"/>
@@ -265,12 +287,23 @@
 </Track></Grid></ControlTemplate></Slider.Template></Slider>
 </Grid>
 <controls:AxisRuler x:Name="TimelineRuler" Height="22" VerticalAlignment="Top" IsHitTestVisible="False"/>
+<Canvas x:Name="ExportRangeShadeOverlay" ClipToBounds="True" IsHitTestVisible="False">
+    <Border x:Name="ExportBeforeShade" Background="#20000000"/>
+    <Border x:Name="ExportAfterShade" Background="#20000000"/>
+    <Border x:Name="ExportRangeBand" Height="22" Background="#30D49A22"/>
+    <Border x:Name="ExportStartLine" Width="2" Background="#9B6500"/>
+    <Border x:Name="ExportEndLine" Width="2" Background="#9B6500"/>
+</Canvas>
 <Canvas x:Name="TimelineMarkerOverlay" ClipToBounds="True" IsHitTestVisible="False">
 <ContentControl x:Name="PlaybackStartFlag" Content="{StaticResource Icon.Flag}" Style="{StaticResource MaterialIcon}" Width="16" Height="16"/>
 </Canvas>
 <Canvas x:Name="PlayheadOverlay" ClipToBounds="True">
 <Thumb x:Name="PlayheadBar" Width="12" Cursor="SizeWE" IsEnabled="{Binding CanNavigate}" ToolTip="현재 재생 위치 · 드래그하여 이동" DragStarted="PlayheadBar_DragStarted" DragDelta="PlayheadBar_DragDelta" DragCompleted="PlayheadBar_DragCompleted">
 <Thumb.Template><ControlTemplate TargetType="Thumb"><Grid Background="Transparent"><Border Width="2" Background="#8150C8" HorizontalAlignment="Center"/><Border Width="6" Height="16" Background="#8150C8" VerticalAlignment="Bottom" Margin="0,0,0,8"/></Grid></ControlTemplate></Thumb.Template></Thumb>
+</Canvas>
+<Canvas x:Name="ExportRangeHandleOverlay" ClipToBounds="True">
+    <Thumb x:Name="ExportStartHandle" Tag="[" Style="{StaticResource ExportBoundaryThumb}" IsEnabled="{Binding CanEditExportRange}" ToolTip="내보내기 시작 · 드래그로 이동" AutomationProperties.Name="내보내기 시작 경계" DragStarted="ExportRange_DragStarted" DragDelta="ExportRange_DragDelta" DragCompleted="ExportRange_DragCompleted"/>
+    <Thumb x:Name="ExportEndHandle" Tag="]" Style="{StaticResource ExportBoundaryThumb}" IsEnabled="{Binding CanEditExportRange}" ToolTip="내보내기 종료 · 이 시각 직전까지 저장" AutomationProperties.Name="내보내기 종료 경계" DragStarted="ExportRange_DragStarted" DragDelta="ExportRange_DragDelta" DragCompleted="ExportRange_DragCompleted"/>
 </Canvas></Grid>
 <ScrollBar x:Name="TimelineScrollBar" Grid.Column="2" Grid.Row="5" Orientation="Horizontal" Scroll="TimelineScrollBar_Scroll" ValueChanged="TimelineScrollBar_ValueChanged" AutomationProperties.Name="타임라인 가로 스크롤"/>
 </Grid></Grid></Border>

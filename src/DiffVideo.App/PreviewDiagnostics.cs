@@ -21,7 +21,7 @@ internal static partial class PreviewDiagnostics
         var mode = args[1];
         var report = Path.GetFullPath(args[5]);
         Directory.CreateDirectory(Path.GetDirectoryName(report)!);
-        Window window = mode is "checks" or "ui" or "features" or "roi" ? new MainWindow() : new Window
+        Window window = mode is "checks" or "ui" or "features" or "roi" or "placement" or "export-range" or "layers" ? new MainWindow() : new Window
         {
             Title = "DiffVideo 프리뷰 측정 · " + mode,
             Width = 1000,
@@ -38,6 +38,9 @@ internal static partial class PreviewDiagnostics
                 else if (mode == "ui") { await CheckUiAsync((MainWindow)window, args[2..5], report); }
                 else if (mode == "features") { await CheckFeaturesAsync((MainWindow)window, args[2..5], report); }
                 else if (mode == "roi") { await CheckRoiEditorAsync((MainWindow)window, args[2..5], report); }
+                else if (mode == "placement") { await CheckPlacementAsync((MainWindow)window, args[2..5], report); }
+                else if (mode == "export-range") { await CheckExportRangeAsync((MainWindow)window, args[2..5], report); }
+                else if (mode == "layers") { await CheckLayersAsync((MainWindow)window, args[2..5], report); }
                 else { await MeasureAsync(window, mode, args[2..5], report, int.Parse(args[6], System.Globalization.CultureInfo.InvariantCulture)); }
                 window.Close();
             }

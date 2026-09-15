@@ -7,6 +7,52 @@ namespace DiffVideo.Core.Tests;
 public sealed class FfmpegIntegrationTests
 {
     [Fact]
+    public async Task Export_SelectedRangePreservesSourceTimeAudioOffsetAndExactFrameCount()
+    {
+        var ffmpegBin = Environment.GetEnvironmentVariable("DIFFVIDEO_FFMPEG_BIN");
+        if (string.IsNullOrWhiteSpace(ffmpegBin)) { return; }
+        var paths = new FfmpegPaths(Path.Combine(ffmpegBin, "ffmpeg.exe"), Path.Combine(ffmpegBin, "ffprobe.exe"));
+        var temp = Path.Combine(Path.GetTempPath(), "DiffVideo.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(temp);
+        try
+        {
+            var sourcePath = Path.Combine(temp, "red-then-blue.mp4");
+            var audioPath = Path.Combine(temp, "tone.mp3");
+            await RunAsync(paths.Ffmpeg, ["-y", "-f", "lavfi", "-i", "color=c=red:s=160x90:r=30:d=1", "-f", "lavfi", "-i", "color=c=blue:s=160x90:r=30:d=2", "-filter_complex", "[0:v][1:v]concat=n=2:v=1:a=0[v]", "-map", "[v]", "-c:v", "mpeg4", sourcePath]);
+            await RunAsync(paths.Ffmpeg, ["-y", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2", "-c:a", "libmp3lame", audioPath]);
+            var probe = new MediaProbeService(paths);
+            var media = await probe.ProbeAsync(sourcePath);
+            var audio = await probe.ProbeAsync(audioPath);
+            var composition = new Composition(
+                new(media, TimeSpan.Zero, PixelRect.FullFrame(media), new(0, 0, 160, 90), VideoFitMode.Stretch, false, 0, false, 1),
+                new(media, TimeSpan.FromSeconds(0.5), PixelRect.FullFrame(media), new(-160, 0, 160, 90), VideoFitMode.Stretch, false, 1, false, 1),
+                new(audio, TimeSpan.FromSeconds(1.5), true, 1),
+                new(160, 90, 30, TimeSpan.FromSeconds(3), OutputQuality.Balanced)
+                { ExportStart = TimeSpan.FromSeconds(1), ExportEnd = TimeSpan.FromSeconds(2) });
+            var outputPath = Path.Combine(temp, "range.mp4");
+            await new FfmpegExportService(paths).ExportAsync(composition, outputPath);
+            var output = await probe.ProbeAsync(outputPath);
+            Assert.InRange(output.Duration.TotalSeconds, 0.99, 1.02);
+            var rgbPath = Path.Combine(temp, "range.rgb");
+            await RunAsync(paths.Ffmpeg, ["-y", "-i", outputPath, "-an", "-pix_fmt", "rgb24", "-f", "rawvideo", rgbPath]);
+            var rgb = await File.ReadAllBytesAsync(rgbPath);
+            Assert.Equal(160 * 90 * 3 * 30, rgb.Length);
+            Assert.True(rgb[0] < 30 && rgb[2] > 200, "First saved frame comes from source second 1 (blue), not source second 0 (red)");
+            var pcmPath = Path.Combine(temp, "range.pcm");
+            await RunAsync(paths.Ffmpeg, ["-y", "-i", outputPath, "-vn", "-ar", "48000", "-ac", "1", "-f", "s16le", pcmPath]);
+            var pcm = await File.ReadAllBytesAsync(pcmPath);
+            Assert.InRange(FirstSampleAbove(pcm, 300) / 48000d, 0.48, 0.53);
+
+            var oneFrame = composition with { Output = composition.Output with { ExportStart = TimeSpan.FromSeconds(1d / 30), ExportEnd = TimeSpan.FromSeconds(2d / 30) } };
+            var oneFramePath = Path.Combine(temp, "one-frame.mp4");
+            await new FfmpegExportService(paths).ExportAsync(oneFrame, oneFramePath);
+            await RunAsync(paths.Ffmpeg, ["-y", "-i", oneFramePath, "-an", "-pix_fmt", "rgb24", "-f", "rawvideo", rgbPath]);
+            Assert.Equal(160 * 90 * 3, new FileInfo(rgbPath).Length);
+        }
+        finally { Directory.Delete(temp, recursive: true); }
+    }
+
+    [Fact]
     public async Task Export_CreatesExpectedDurationH264AacMp4()
     {
         var ffmpegBin = Environment.GetEnvironmentVariable("DIFFVIDEO_FFMPEG_BIN");
@@ -50,6 +96,27 @@ public sealed class FfmpegIntegrationTests
             Assert.Equal(640, output.DisplayWidth);
             Assert.Equal(360, output.DisplayHeight);
             Assert.InRange(output.Duration.TotalSeconds, 4.95, 5.05);
+
+            // Red extends beyond the upper-left; green extends beyond the lower-right.
+            // Export must clip the rectangles instead of rejecting or moving them.
+            var clippedComposition = composition with
+            {
+                Video1 = composition.Video1 with { Destination = new(-160, -180, 320, 360), FitMode = VideoFitMode.Stretch },
+                Video2 = composition.Video2 with { Destination = new(480, 180, 320, 360), FitMode = VideoFitMode.Stretch },
+                Output = composition.Output with { Duration = TimeSpan.FromSeconds(1) }
+            };
+            var clippedPath = Path.Combine(temp, "clipped.mp4");
+            await new FfmpegExportService(paths).ExportAsync(clippedComposition, clippedPath);
+            var pixelsPath = Path.Combine(temp, "clipped.rgb");
+            await RunAsync(paths.Ffmpeg, ["-y", "-i", clippedPath, "-frames:v", "1", "-pix_fmt", "rgb24", "-f", "rawvideo", pixelsPath]);
+            var pixels = await File.ReadAllBytesAsync(pixelsPath);
+            Assert.Equal(640 * 360 * 3, pixels.Length);
+            var red = (40 * 640 + 40) * 3;
+            var black = (100 * 640 + 300) * 3;
+            var green = (240 * 640 + 540) * 3;
+            Assert.True(pixels[red] > 200 && pixels[red + 1] < 30, "Negative placement shows the remaining red area");
+            Assert.True(pixels[black] < 20 && pixels[black + 1] < 20 && pixels[black + 2] < 20, "Uncovered output stays black");
+            Assert.True(pixels[green] < 30 && pixels[green + 1] > 80, "Right/bottom overflow shows the remaining green area");
         }
         finally
         {
