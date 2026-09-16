@@ -5,21 +5,23 @@
         WindowStartupLocation="CenterOwner" Style="{StaticResource {x:Type Window}}">
     <Grid Margin="24">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <StackPanel Margin="0,0,0,16">
-            <TextBlock Text="내보내기 확인" FontSize="26" FontWeight="Light"/>
-            <TextBlock Text="내보내기 버튼을 누른 시점의 설정으로 저장합니다." Margin="0,8,0,0" FontSize="12"/>
-            <TextBlock Text="확인을 누르면 저장 위치와 파일 이름을 선택할 수 있습니다." Margin="0,4,0,0" FontSize="12" TextWrapping="Wrap"/>
+        <StackPanel Margin="0,0,0,24">
+            <TextBlock Text="내보내기 확인" FontFamily="{StaticResource DisplayFont}" FontSize="30" FontWeight="Bold" LineHeight="39"/>
+            <TextBlock Text="내보내기 버튼을 누른 시점의 설정으로 저장합니다." Margin="0,12,0,0" FontSize="13" Foreground="{StaticResource SecondaryTextBrush}"/>
+            <TextBlock Text="확인을 누르면 저장 위치와 파일 이름을 선택할 수 있습니다." Margin="0,6,0,0" FontSize="13" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap"/>
         </StackPanel>
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <TextBlock x:Name="SummaryText" TextWrapping="Wrap" FontSize="13" LineHeight="22"/>
-        </ScrollViewer>
-        <StackPanel Grid.Row="2" Margin="0,16,0,16">
+        <Border Grid.Row="1" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" Padding="24">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <TextBlock x:Name="SummaryText" TextWrapping="Wrap" FontSize="15" LineHeight="25.5"/>
+            </ScrollViewer>
+        </Border>
+        <StackPanel Grid.Row="2" Margin="0,24,0,24">
             <CheckBox x:Name="IncludeFileNamesCheckBox" Content="파일 이름 추가하기" IsChecked="False"/>
-            <TextBlock Text="두 영상의 파일명을 각 영상 왼쪽 위에 표시합니다. 최대 두 줄이며, 저장된 영상에서 제거할 수 없습니다." TextWrapping="Wrap" FontSize="12" Margin="0,8,0,0"/>
+            <TextBlock Text="두 영상의 파일명을 각 영상 왼쪽 위에 표시합니다. 최대 두 줄이며, 저장된 영상에서 제거할 수 없습니다." TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource SecondaryTextBrush}" Margin="30,8,0,0"/>
         </StackPanel>
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button x:Name="CancelButton" Content="취소" IsCancel="True" Margin="0,0,8,0"/>
-            <Button x:Name="ConfirmButton" Content="확인" IsDefault="True" Click="Confirm_Click"/>
+            <Button x:Name="CancelButton" Content="취소" IsCancel="True" Margin="0,0,12,0"/>
+            <Button x:Name="ConfirmButton" Content="확인" IsDefault="True" Click="Confirm_Click" Style="{StaticResource PrimaryButton}"/>
         </StackPanel>
     </Grid>
 </Window>

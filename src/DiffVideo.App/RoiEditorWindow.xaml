@@ -10,15 +10,15 @@
         <DockPanel Margin="0,0,0,12">
             <Button x:Name="GridToggleButton" DockPanel.Dock="Right" Content="{StaticResource Icon.GridOn}" Style="{StaticResource MaterialIconButton}" Click="GridToggle_Click" ToolTip="그리드 숨기기 (100px)" VerticalAlignment="Top"/>
             <StackPanel>
-                <TextBlock Text="필요한 장면만 남기세요." FontSize="26" FontWeight="Light"/>
-                <TextBlock Text="내부: 이동 · 변/모서리: 크기 조절 · 외부: 새 영역 · Esc: 드래그 취소" FontSize="12" TextWrapping="Wrap" Margin="0,8,12,0"/>
+                <TextBlock Text="필요한 장면만 남기세요." FontFamily="{StaticResource DisplayFont}" FontSize="30" FontWeight="Bold" LineHeight="39"/>
+                <TextBlock Text="내부: 이동 · 변/모서리: 크기 조절 · 외부: 새 영역 · Esc: 드래그 취소" FontSize="13" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,12,12,0"/>
             </StackPanel>
         </DockPanel>
-        <Border Grid.Row="1" Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="12">
+        <Border Grid.Row="1" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="0" Padding="12">
             <Grid x:Name="RulerImageSurface">
                 <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                <TextBlock Text="px" FontSize="10" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                <TextBlock Text="px" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                 <controls:AxisRuler x:Name="SourceXRuler" Grid.Column="1" SourcePixels="True"/>
                 <controls:AxisRuler x:Name="SourceYRuler" Grid.Row="1" SourcePixels="True" Vertical="True"/>
                 <Grid x:Name="ImageHost" Grid.Row="1" Grid.Column="1" Background="Black" ClipToBounds="True" Focusable="True"
@@ -28,13 +28,13 @@
                     <Image x:Name="SourceImage" Stretch="Uniform"/>
                     <controls:SourcePixelGrid x:Name="PixelGrid"/>
                     <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False">
-                        <Rectangle x:Name="RoiRectangle" Stroke="{StaticResource LilacBrush}" StrokeThickness="2" Fill="#16C5B0F4"/>
+                        <Rectangle x:Name="RoiRectangle" Stroke="{StaticResource PrimaryBrush}" StrokeThickness="2" Fill="#2678716C"/>
                     </Canvas>
                     <Canvas x:Name="HandleCanvas" IsHitTestVisible="False"/>
                 </Grid>
                 <Canvas x:Name="CrosshairOverlay" Grid.RowSpan="2" Grid.ColumnSpan="2" IsHitTestVisible="False" ClipToBounds="True" Visibility="Collapsed">
-                    <Line x:Name="VerticalGuide" Stroke="#C5B0F4" StrokeThickness="1"/>
-                    <Line x:Name="HorizontalGuide" Stroke="#C5B0F4" StrokeThickness="1"/>
+                    <Line x:Name="VerticalGuide" Stroke="{StaticResource PrimaryBrush}" StrokeThickness="1"/>
+                    <Line x:Name="HorizontalGuide" Stroke="{StaticResource PrimaryBrush}" StrokeThickness="1"/>
                 </Canvas>
                 <controls:CoordinateTip x:Name="SourceCoordinateTip" Grid.Row="1" Grid.Column="1"/>
             </Grid>
@@ -47,7 +47,7 @@
 <DockPanel Margin="0,0,8,0"><TextBlock Text="W" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBox x:Name="WidthInput" Tag="Width" Text="0" ToolTip="원본 ROI 너비 (px)" AutomationProperties.Name="ROI 너비" LostKeyboardFocus="Number_LostKeyboardFocus" PreviewKeyDown="Number_PreviewKeyDown"/></DockPanel>
 <DockPanel Margin="0,0,0,0"><TextBlock Text="H" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBox x:Name="HeightInput" Tag="Height" Text="0" ToolTip="원본 ROI 높이 (px)" AutomationProperties.Name="ROI 높이" LostKeyboardFocus="Number_LostKeyboardFocus" PreviewKeyDown="Number_PreviewKeyDown"/></DockPanel>
             </UniformGrid>
-            <TextBlock x:Name="RoiText" Grid.Row="1" FontSize="11" Margin="0,6,0,6" TextTrimming="CharacterEllipsis"/>
+            <TextBlock x:Name="RoiText" Grid.Row="1" FontSize="13" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,12" TextTrimming="CharacterEllipsis"/>
             <DockPanel Grid.Row="2" LastChildFill="False">
                 <Button x:Name="FullFrameButton" Content="{StaticResource Icon.CropFree}" Style="{StaticResource MaterialIconButton}" ToolTip="자르기 영역을 전체 프레임으로 초기화" Click="FullFrame_Click" DockPanel.Dock="Left"/>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">

@@ -14,28 +14,29 @@
             <Setter Property="Width" Value="14"/><Setter Property="Height" Value="22"/>
             <Setter Property="Cursor" Value="SizeWE"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Thumb">
-                <Border Background="#9B6500" CornerRadius="2"><TextBlock Text="{TemplateBinding Tag}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <Border Background="{StaticResource WarningBrush}" CornerRadius="0"><TextBlock Text="{TemplateBinding Tag}" Foreground="{StaticResource CanvasBrush}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
         <Style x:Key="MediaSelector" TargetType="Button" BasedOn="{StaticResource CompactButton}">
             <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="BorderBrush" Value="{StaticResource InkBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource MediumBorderBrush}" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="Background" Value="{StaticResource InkBrush}" />
+                    <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
                     <Setter Property="Foreground" Value="{StaticResource CanvasBrush}" />
+                    <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="TrackOverlay" TargetType="Border">
-            <Setter Property="BorderBrush" Value="White" />
-            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderBrush" Value="{StaticResource CanvasBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Cursor" Value="SizeAll" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
                     <Setter Property="BorderBrush" Value="{StaticResource LilacBrush}" />
-                    <Setter Property="BorderThickness" Value="4" />
+                    <Setter Property="BorderThickness" Value="2" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -43,7 +44,7 @@
             <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="CornerRadius" Value="0" />
             <Setter Property="TextElement.Foreground" Value="{StaticResource InkBrush}" />
             <Setter Property="Cursor" Value="SizeWE" />
             <Setter Property="Height" Value="30" />
@@ -53,53 +54,22 @@
         <Style x:Key="VideoTimelineClip" TargetType="Border" BasedOn="{StaticResource TimelineClip}">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="Background" Value="{StaticResource InkBrush}" />
+                    <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
                     <Setter Property="TextElement.Foreground" Value="{StaticResource CanvasBrush}" />
-                    <Setter Property="BorderBrush" Value="{StaticResource InkBrush}" />
+                    <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
     </Window.Resources>
-    <Grid x:Name="MainRootGrid">
-<Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="6"/><RowDefinition x:Name="TimelineRow" Height="264" MinHeight="264"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <Border Grid.Row="0" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,1,0,1" Padding="12,6">
-            <DockPanel x:Name="CommandBar">
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button x:Name="AboutButton" Content="{StaticResource Icon.Info}" Style="{StaticResource MaterialIconButton}" ToolTip="DiffVideo 정보" Click="About_Click" Margin="0,0,8,0" />
-                <Button x:Name="OpenFilesButton" Content="{StaticResource Icon.FolderOpen}" Style="{StaticResource MaterialIconButton}" ToolTip="MP4 영상 / MP3 음원 열기" Click="OpenFiles_Click" IsEnabled="{Binding IsEditingEnabled}" Margin="0,0,8,0" />
-                <Button x:Name="CancelExportButton" Content="{StaticResource Icon.Cancel}" Style="{StaticResource MaterialIconButton}" ToolTip="진행 중인 내보내기 취소" Click="CancelExport_Click" Visibility="{Binding IsExporting, Converter={StaticResource BoolToVisibility}}" Margin="0,0,8,0" />
-                <Button x:Name="ExportButton" Content="{StaticResource Icon.FileDownload}" Style="{StaticResource PrimaryMaterialIconButton}" ToolTip="합성 영상을 MP4로 내보내기" Click="Export_Click" IsEnabled="{Binding CanStartExport}" />
-            </StackPanel>
-                <WrapPanel VerticalAlignment="Center" IsEnabled="{Binding IsEditingEnabled}">
-                <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
-                    <ContentControl Content="{StaticResource Icon.AspectRatio}" Style="{StaticResource MaterialIcon}" ToolTip="캔버스 크기" Margin="0,0,12,0" />
-                    <TextBox Width="68" Text="{Binding CanvasWidth, UpdateSourceTrigger=LostFocus}" ToolTip="캔버스 너비 (px)" AutomationProperties.Name="캔버스 너비" />
-                    <TextBlock Text="×" VerticalAlignment="Center" Margin="8,0" />
-                    <TextBox Width="68" Text="{Binding CanvasHeight, UpdateSourceTrigger=LostFocus}" ToolTip="캔버스 높이 (px)" AutomationProperties.Name="캔버스 높이" />
-                    <Button Content="720p" Click="Canvas720_Click" Style="{StaticResource CompactButton}" Margin="12,0,4,0" />
-                    <Button Content="1080p" Click="Canvas1080_Click" Style="{StaticResource CompactButton}" Margin="0,0,4,0" />
-                    <Button Content="4K" Click="Canvas4K_Click" Style="{StaticResource CompactButton}" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
-                    <ContentControl Content="{StaticResource Icon.VideoSettings}" Style="{StaticResource MaterialIcon}" ToolTip="출력 프레임 레이트 / 품질" Margin="0,0,12,0" />
-                    <ComboBox x:Name="FpsCombo" Width="100" ItemsSource="{Binding FpsChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding OutputFps}" ToolTip="출력 프레임 레이트" AutomationProperties.Name="출력 프레임 레이트" Margin="0,0,8,0" />
-                    <ComboBox x:Name="QualityCombo" Width="108" ItemsSource="{Binding QualityChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Quality}" AutomationProperties.Name="출력 품질" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <ContentControl Content="{StaticResource Icon.Timer}" Style="{StaticResource MaterialIcon}" ToolTip="출력 종료 시각 (초)" Margin="0,0,12,0" />
-                    <TextBox Width="76" Text="{Binding OutputDurationSeconds, StringFormat=F1, UpdateSourceTrigger=LostFocus}" ToolTip="출력 종료 시각 (초)" AutomationProperties.Name="출력 종료 시각" />
-                    <TextBlock Text="초" VerticalAlignment="Center" Margin="8,0,0,0" />
-                </StackPanel>
-            </WrapPanel>
-            </DockPanel>
-        </Border>
-        <Grid x:Name="PreviewWorkspace" Grid.Row="1" Margin="12,8,12,8">
+    <Grid x:Name="MainRootGrid" Margin="8">
+<Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="8"/><RowDefinition x:Name="TimelineRow" Height="264" MinHeight="264"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid x:Name="PreviewWorkspace" Grid.Row="0">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="8" /><ColumnDefinition Width="216" /></Grid.ColumnDefinitions>
-                <Border x:Name="PreviewDropHost" Grid.Column="0" Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="4"
+                <Border x:Name="PreviewDropHost" Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="0" Padding="12"
                         AllowDrop="True" Drop="Preview_Drop" DragOver="Preview_DragOver" DragLeave="Preview_DragLeave" SizeChanged="PreviewDropHost_SizeChanged"
                         ToolTip="정지·일시정지: 왼쪽 드래그로 이동 · 변/모서리로 크기 조절 · 오른쪽 드래그로 ROI 지정 · Esc 취소 · Space 재생/일시정지">
                     <Grid>
-                        <Viewbox Stretch="Uniform">
+                        <Viewbox x:Name="PreviewViewbox" Stretch="Uniform">
                             <Grid x:Name="PreviewLogicalCanvas" Width="{Binding CanvasWidth}" Height="{Binding CanvasHeight}" Background="Black" Focusable="True"
                                   PreviewMouseRightButtonDown="PreviewRoi_RightButtonDown" PreviewMouseRightButtonUp="PreviewRoi_RightButtonUp"
                                   PreviewMouseMove="PreviewRoi_MouseMove" LostMouseCapture="PreviewRoi_LostMouseCapture">
@@ -108,40 +78,47 @@
                                     <Border x:Name="Video1Overlay" DataContext="{Binding Video1}" Style="{StaticResource TrackOverlay}" Width="{Binding DestinationWidth}" Height="{Binding DestinationHeight}"
                                             Canvas.Left="{Binding DestinationX}" Canvas.Top="{Binding DestinationY}" Panel.ZIndex="{Binding ZIndex}" Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibility}}"
                                             MouseLeftButtonDown="Overlay_MouseLeftButtonDown" MouseMove="Overlay_MouseMove" MouseLeftButtonUp="Overlay_MouseLeftButtonUp">
-                                        <Border Background="#99000000" CornerRadius="8" Padding="16,6" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12">
-                                            <StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Foreground="White" Width="32" Height="32" /><TextBlock Text="1" Foreground="White" FontSize="28" FontWeight="SemiBold" Margin="8,0,0,0" /></StackPanel>
+                                        <Border Background="#E61C1917" CornerRadius="0" Padding="12,8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12">
+                                            <StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Foreground="{StaticResource CanvasBrush}" Width="28" Height="28" /><TextBlock Text="1" Foreground="{StaticResource CanvasBrush}" FontSize="22" FontWeight="SemiBold" Margin="8,0,0,0" /></StackPanel>
                                         </Border>
                                     </Border>
                                     <Border x:Name="Video2Overlay" DataContext="{Binding Video2}" Style="{StaticResource TrackOverlay}" Width="{Binding DestinationWidth}" Height="{Binding DestinationHeight}"
                                             Canvas.Left="{Binding DestinationX}" Canvas.Top="{Binding DestinationY}" Panel.ZIndex="{Binding ZIndex}" Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibility}}"
                                             MouseLeftButtonDown="Overlay_MouseLeftButtonDown" MouseMove="Overlay_MouseMove" MouseLeftButtonUp="Overlay_MouseLeftButtonUp">
-                                        <Border Background="#99000000" CornerRadius="8" Padding="16,6" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12">
-                                            <StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Foreground="White" Width="32" Height="32" /><TextBlock Text="2" Foreground="White" FontSize="28" FontWeight="SemiBold" Margin="8,0,0,0" /></StackPanel>
+                                        <Border Background="#E61C1917" CornerRadius="0" Padding="12,8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12">
+                                            <StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Foreground="{StaticResource CanvasBrush}" Width="28" Height="28" /><TextBlock Text="2" Foreground="{StaticResource CanvasBrush}" FontSize="22" FontWeight="SemiBold" Margin="8,0,0,0" /></StackPanel>
                                         </Border>
                                     </Border>
                                 </Canvas>
                                 <Canvas IsHitTestVisible="False" ClipToBounds="True">
-                                    <Rectangle x:Name="PreviewRoiSelection" Visibility="Collapsed" Stroke="White" Fill="#40C5B0F4" StrokeDashArray="4,2" />
+                                    <Rectangle x:Name="PreviewRoiSelection" Visibility="Collapsed" Stroke="{StaticResource CanvasBrush}" Fill="#4078716C" StrokeDashArray="4,2" />
                                 </Canvas>
                             </Grid>
                         </Viewbox>
                         <controls:CoordinateTip x:Name="PreviewCoordinateTip" Panel.ZIndex="120"/>
-                        <Border Background="{StaticResource SurfaceBrush}" IsHitTestVisible="False">
+                        <Border Background="{StaticResource SurfaceBrush}">
                             <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasComposition}" Value="False"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Border.Style>
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="두 영상을,&#x0a;하나의 화면으로." FontSize="32" FontWeight="Light" TextAlignment="Center" LineHeight="42" />
-                                <TextBlock Text="MP4 영상 두 개와 MP3 음원을 여기에 끌어 놓으세요." TextAlignment="Center" FontSize="12" Margin="0,16,0,0" />
+                            <StackPanel Width="420" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="48">
+                                <TextBlock Text="새 합성" Style="{StaticResource Eyebrow}" />
+                                <TextBlock Text="두 영상을,&#x0a;하나의 화면으로." FontFamily="{StaticResource DisplayFont}" FontSize="30" FontWeight="Bold" TextAlignment="Left" LineHeight="39" />
+                                <TextBlock Text="MP4 영상 두 개를 배치하고 MP3 음원을 더해 하나의 영상으로 내보냅니다." TextAlignment="Left" TextWrapping="Wrap" FontSize="15" LineHeight="25.5" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,12,0,24" />
+                                <Button Click="OpenFiles_Click" IsEnabled="{Binding IsEditingEnabled}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" ToolTip="MP4 영상 또는 MP3 음원 열기">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ContentControl Content="{StaticResource Icon.FolderOpen}" Style="{StaticResource MaterialIcon}" Foreground="{StaticResource CanvasBrush}" Width="20" Height="20" />
+                                        <TextBlock Text="영상 또는 음원 열기" Margin="12,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
                         </Border>
-                        <Border x:Name="PreviewLoadingOverlay" Background="#99000000" CornerRadius="8" IsHitTestVisible="False" Visibility="{Binding IsPreviewLoading, Converter={StaticResource BoolToVisibility}}" Panel.ZIndex="100">
-                            <Border Background="White" CornerRadius="24" Padding="24,16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border x:Name="PreviewLoadingOverlay" Background="#CC1C1917" CornerRadius="0" IsHitTestVisible="False" Visibility="{Binding IsPreviewLoading, Converter={StaticResource BoolToVisibility}}" Panel.ZIndex="100">
+                            <Border Background="{StaticResource CanvasBrush}" CornerRadius="0" Padding="24,12" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <StackPanel Width="176">
                                     <TextBlock Text="재생 동기화 중…" TextAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,12" />
                                     <ProgressBar IsIndeterminate="True" Height="4" />
                                 </StackPanel>
                             </Border>
                         </Border>
-                        <Border x:Name="PreviewDropHint" Visibility="Collapsed" IsHitTestVisible="False" Background="#E6FFFFFF" BorderBrush="{StaticResource LilacBrush}" BorderThickness="3" CornerRadius="8" Panel.ZIndex="110">
+                        <Border x:Name="PreviewDropHint" Visibility="Collapsed" IsHitTestVisible="False" Background="#E6FAFAF9" BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="3" CornerRadius="0" Panel.ZIndex="110">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <ContentControl Content="{StaticResource Icon.FolderOpen}" Style="{StaticResource MaterialIcon}" Width="40" Height="40" HorizontalAlignment="Center" Margin="0,0,0,12" />
                                 <TextBlock Text="놓아서 MP4 / MP3 추가" FontSize="20" FontWeight="SemiBold" />
@@ -149,51 +126,92 @@
                         </Border>
                     </Grid>
                 </Border>
-            <Border x:Name="InspectorPanel" Grid.Column="2" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="16" Padding="10" IsEnabled="{Binding IsEditingEnabled}">
+            <Border x:Name="InspectorPanel" Grid.Column="2" Background="{StaticResource CanvasBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="0" Padding="12">
                 <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="40" /><RowDefinition Height="Auto"/><RowDefinition Height="*" /></Grid.RowDefinitions>
-                    <StackPanel Orientation="Horizontal">
-                        <Border DataContext="{Binding Video1}" Margin="0,0,8,0"><Button Style="{StaticResource MediaSelector}" Click="MediaVideo_Click" ToolTip="영상 1 선택" AutomationProperties.Name="영상 1 선택"><StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" /><TextBlock Text="1" Margin="8,0,0,0" VerticalAlignment="Center" /></StackPanel></Button></Border>
-                        <Border DataContext="{Binding Video2}"><Button Style="{StaticResource MediaSelector}" Click="MediaVideo_Click" ToolTip="영상 2 선택" AutomationProperties.Name="영상 2 선택"><StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" /><TextBlock Text="2" Margin="8,0,0,0" VerticalAlignment="Center" /></StackPanel></Button></Border>
-                        <Button x:Name="ResetRoiButton" Content="{StaticResource Icon.CropFree}" Style="{StaticResource MaterialIconButton}" ToolTip="선택 영상의 ROI를 원본 전체로 복원" Click="ResetRoi_Click" IsEnabled="{Binding SelectedVideo.HasMedia}" Margin="8,0,0,0" />
-                    </StackPanel>
-                    <DockPanel Grid.Row="1" Margin="0,4,0,10" ToolTip="겹치는 부분에서 위에 표시할 영상 · A=영상 1, B=영상 2 · 내보내기에도 적용">
-                        <TextBlock Text="위에 표시" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <ComboBox x:Name="FrontVideoCombo" ItemsSource="{Binding FrontVideoChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding FrontVideoIndex, Mode=TwoWay}" AutomationProperties.Name="위에 표시할 영상"/>
-                    </DockPanel>
-                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel DataContext="{Binding SelectedVideo}">
-                        <TextBlock Text="{Binding DataContext.SelectedVideoTitle, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource SectionTitle}" FontSize="16" Margin="0,0,0,4" />
-                        <TextBlock Text="{Binding DisplayName}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Details}" Margin="0,0,0,12" />
-                        <DockPanel><ContentControl Content="{StaticResource Icon.AvTimer}" Style="{StaticResource MaterialIcon}" ToolTip="영상 시작 시각 (초)" Margin="0,0,8,0" /><TextBox Text="{Binding StartSeconds, StringFormat=F3, UpdateSourceTrigger=LostFocus}" ToolTip="영상 시작 시각 (초)" AutomationProperties.Name="영상 시작 시각" /></DockPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,12,0,4"><ContentControl Content="{StaticResource Icon.OpenWith}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" ToolTip="캔버스 위치" /><TextBlock Text="X / Y" VerticalAlignment="Center" FontSize="11" Margin="8,0,0,0" /></StackPanel>
-                        <UniformGrid Columns="2"><TextBox Text="{Binding DestinationX}" Margin="0,0,4,0" ToolTip="X 위치" AutomationProperties.Name="X 위치" /><TextBox Text="{Binding DestinationY}" Margin="4,0,0,0" ToolTip="Y 위치" AutomationProperties.Name="Y 위치" /></UniformGrid>
-                        <StackPanel Orientation="Horizontal" Margin="0,12,0,4"><ContentControl Content="{StaticResource Icon.AspectRatio}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" ToolTip="표시 크기" /><TextBlock Text="너비 / 높이" VerticalAlignment="Center" FontSize="11" Margin="8,0,0,0" /></StackPanel>
-                        <UniformGrid Columns="2"><TextBox Text="{Binding DestinationWidth}" Margin="0,0,4,0" AutomationProperties.Name="표시 너비" /><TextBox Text="{Binding DestinationHeight}" Margin="4,0,0,0" AutomationProperties.Name="표시 높이" /></UniformGrid>
-                        <CheckBox x:Name="AspectLockCheckBox" Style="{StaticResource AspectLockIconCheckBox}" IsChecked="{Binding AspectRatioLocked}" Margin="0,4,0,4" HorizontalAlignment="Left" />
-                        <ComboBox x:Name="FitCombo" ItemsSource="{Binding DataContext.FitChoices, RelativeSource={RelativeSource AncestorType=Window}}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding FitMode}" AutomationProperties.Name="영상 맞춤 방식" />
-                        <Border Height="1" Background="{StaticResource SoftHairlineBrush}" Margin="0,16,0,4" />
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,4">
-                            <Button x:Name="EditRoiButton" Content="{StaticResource Icon.Crop}" Style="{StaticResource MaterialIconButton}" ToolTip="별도 창에서 ROI 편집 · 프리뷰에서는 오른쪽 버튼 드래그" Click="EditRoi_Click" Margin="0,0,8,0" />
-                        </StackPanel>
-                        <TextBlock Text="프리뷰에서 우클릭 드래그" FontSize="11" Margin="0,0,0,8" />
-                        <TextBlock Text="X / Y" FontSize="11" Margin="0,0,0,4" />
-                        <UniformGrid Columns="2"><TextBox x:Name="RoiXInput" Text="{Binding RoiX, UpdateSourceTrigger=LostFocus}" Margin="0,0,4,0" AutomationProperties.Name="ROI X" /><TextBox x:Name="RoiYInput" Text="{Binding RoiY, UpdateSourceTrigger=LostFocus}" Margin="4,0,0,0" AutomationProperties.Name="ROI Y" /></UniformGrid>
-                        <TextBlock Text="너비 / 높이" FontSize="11" Margin="0,8,0,4" />
-                        <UniformGrid Columns="2"><TextBox x:Name="RoiWidthInput" Text="{Binding RoiWidth, UpdateSourceTrigger=LostFocus}" Margin="0,0,4,0" AutomationProperties.Name="ROI 너비" /><TextBox x:Name="RoiHeightInput" Text="{Binding RoiHeight, UpdateSourceTrigger=LostFocus}" Margin="4,0,0,0" AutomationProperties.Name="ROI 높이" /></UniformGrid>
-                        <Border Height="1" Background="{StaticResource SoftHairlineBrush}" Margin="0,16,0,4" />
-                        <ContentControl Content="{StaticResource Icon.VolumeUp}" Style="{StaticResource MaterialIcon}" ToolTip="오디오 볼륨" HorizontalAlignment="Left" Margin="0,12,0,4" />
-                        <DockPanel><TextBlock DockPanel.Dock="Right" Text="{Binding VolumePercent, StringFormat={}{0:F0}%}" VerticalAlignment="Center" Margin="8,0,0,0" /><Slider Minimum="0" Maximum="200" Value="{Binding VolumePercent}" AutomationProperties.Name="영상 오디오 볼륨" /></DockPanel>
-                        <CheckBox x:Name="InspectorAudioCheckBox" Style="{StaticResource AudioIconCheckBox}" IsChecked="{Binding IncludeAudio}" IsEnabled="{Binding HasAudio}" HorizontalAlignment="Left" />
-                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0"><Button x:Name="SendBackwardButton" Content="{StaticResource Icon.FlipToBack}" Click="SendBackward_Click" Style="{StaticResource MaterialIconButton}" ToolTip="선택한 영상을 뒤로 보내기" Margin="0,0,8,0" /><Button x:Name="BringForwardButton" Content="{StaticResource Icon.FlipToFront}" Click="BringForward_Click" Style="{StaticResource MaterialIconButton}" ToolTip="선택한 영상을 앞으로 가져오기" /></StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0,0,0,8">
+                        <Button x:Name="AboutButton" Content="{StaticResource Icon.Info}" Style="{StaticResource MaterialIconButton}" ToolTip="DiffVideo 정보" Click="About_Click" Margin="0,0,8,0" />
+                        <Button x:Name="OpenFilesButton" Content="{StaticResource Icon.FolderOpen}" Style="{StaticResource MaterialIconButton}" ToolTip="MP4 영상 / MP3 음원 열기" Click="OpenFiles_Click" IsEnabled="{Binding IsEditingEnabled}" Margin="0,0,8,0" />
+                        <Button x:Name="CancelExportButton" Content="{StaticResource Icon.Cancel}" Style="{StaticResource MaterialIconButton}" ToolTip="진행 중인 내보내기 취소" Click="CancelExport_Click" Visibility="{Binding IsExporting, Converter={StaticResource BoolToVisibility}}" Margin="0,0,8,0" />
+                        <Button x:Name="ExportButton" Content="{StaticResource Icon.FileDownload}" Style="{StaticResource PrimaryMaterialIconButton}" ToolTip="합성 영상을 MP4로 내보내기" Click="Export_Click" IsEnabled="{Binding CanStartExport}" />
+                    </WrapPanel>
+                    <TabControl x:Name="SettingsTabs" Grid.Row="1" SelectedIndex="1">
+                        <TabItem x:Name="CanvasSettingsTab" Header="캔버스">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel IsEnabled="{Binding IsEditingEnabled}">
+                                    <TextBlock Text="출력 설정" Style="{StaticResource InspectorHeading}" />
+                                    <TextBlock Text="캔버스 크기" Style="{StaticResource FieldLabel}" Margin="0,12,0,8" />
+                                    <UniformGrid Columns="2">
+                                        <TextBox Text="{Binding CanvasWidth, UpdateSourceTrigger=LostFocus}" ToolTip="캔버스 너비 (px)" AutomationProperties.Name="캔버스 너비" Margin="0,0,4,0" />
+                                        <TextBox Text="{Binding CanvasHeight, UpdateSourceTrigger=LostFocus}" ToolTip="캔버스 높이 (px)" AutomationProperties.Name="캔버스 높이" Margin="4,0,0,0" />
+                                    </UniformGrid>
+                                    <UniformGrid Columns="3" Margin="0,8,0,0">
+                                        <Button Content="720p" Click="Canvas720_Click" Style="{StaticResource CompactButton}" Padding="8,6" Margin="0,0,4,0" />
+                                        <Button Content="1080p" Click="Canvas1080_Click" Style="{StaticResource CompactButton}" Padding="8,6" Margin="2,0" />
+                                        <Button Content="4K" Click="Canvas4K_Click" Style="{StaticResource CompactButton}" Padding="8,6" Margin="4,0,0,0" />
+                                    </UniformGrid>
+                                    <Border Height="1" Background="{StaticResource SoftHairlineBrush}" Margin="0,24,0,0" />
+                                    <TextBlock Text="프레임 레이트" Style="{StaticResource FieldLabel}" />
+                                    <ComboBox x:Name="FpsCombo" ItemsSource="{Binding FpsChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding OutputFps}" ToolTip="출력 프레임 레이트" AutomationProperties.Name="출력 프레임 레이트" />
+                                    <TextBlock Text="품질" Style="{StaticResource FieldLabel}" />
+                                    <ComboBox x:Name="QualityCombo" ItemsSource="{Binding QualityChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Quality}" AutomationProperties.Name="출력 품질" />
+                                    <TextBlock Text="전체 길이" Style="{StaticResource FieldLabel}" />
+                                    <DockPanel><TextBlock DockPanel.Dock="Right" Text="초" VerticalAlignment="Center" Margin="8,0,0,0" /><TextBox Text="{Binding OutputDurationSeconds, StringFormat=F1, UpdateSourceTrigger=LostFocus}" ToolTip="출력 종료 시각 (초)" AutomationProperties.Name="출력 종료 시각" /></DockPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabItem>
+                        <TabItem x:Name="VideoSettingsTab" Header="영상">
+                            <Grid IsEnabled="{Binding IsEditingEnabled}">
+                                <Grid.RowDefinitions><RowDefinition Height="40" /><RowDefinition Height="Auto"/><RowDefinition Height="*" /></Grid.RowDefinitions>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border DataContext="{Binding Video1}" Margin="0,0,8,0"><Button Style="{StaticResource MediaSelector}" Click="MediaVideo_Click" ToolTip="영상 1 선택" AutomationProperties.Name="영상 1 선택"><StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" /><TextBlock Text="1" Margin="8,0,0,0" VerticalAlignment="Center" /></StackPanel></Button></Border>
+                                    <Border DataContext="{Binding Video2}"><Button Style="{StaticResource MediaSelector}" Click="MediaVideo_Click" ToolTip="영상 2 선택" AutomationProperties.Name="영상 2 선택"><StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" /><TextBlock Text="2" Margin="8,0,0,0" VerticalAlignment="Center" /></StackPanel></Button></Border>
+                                    <Button x:Name="ResetRoiButton" Content="{StaticResource Icon.CropFree}" Style="{StaticResource MaterialIconButton}" ToolTip="선택 영상의 ROI를 원본 전체로 복원" Click="ResetRoi_Click" IsEnabled="{Binding SelectedVideo.HasMedia}" Margin="8,0,0,0" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Margin="0,12,0,12" ToolTip="겹치는 부분에서 위에 표시할 영상 · A=영상 1, B=영상 2 · 내보내기에도 적용">
+                                    <TextBlock Text="위에 표시" Style="{StaticResource FieldLabel}" Margin="0,0,0,8"/>
+                                    <ComboBox x:Name="FrontVideoCombo" ItemsSource="{Binding FrontVideoChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding FrontVideoIndex, Mode=TwoWay}" AutomationProperties.Name="위에 표시할 영상"/>
+                                </StackPanel>
+                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                    <StackPanel DataContext="{Binding SelectedVideo}">
+                                        <TextBlock Text="{Binding DataContext.SelectedVideoTitle, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource InspectorHeading}" />
+                                        <TextBlock Text="{Binding DisplayName}" FontSize="13" Foreground="{StaticResource SecondaryTextBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Details}" Margin="0,0,0,12" />
+                                        <TextBlock Text="배치" Style="{StaticResource FieldLabel}" Margin="0,12,0,8" />
+                                        <DockPanel><TextBlock Text="시작" FontSize="13" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,12,0" /><TextBox Text="{Binding StartSeconds, StringFormat=F3, UpdateSourceTrigger=LostFocus}" ToolTip="영상 시작 시각 (초)" AutomationProperties.Name="영상 시작 시각" /></DockPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,12,0,4"><ContentControl Content="{StaticResource Icon.OpenWith}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" ToolTip="캔버스 위치" /><TextBlock Text="X / Y" VerticalAlignment="Center" FontSize="11" Margin="8,0,0,0" /></StackPanel>
+                                        <UniformGrid Columns="2"><TextBox Text="{Binding DestinationX}" Margin="0,0,4,0" ToolTip="X 위치" AutomationProperties.Name="X 위치" /><TextBox Text="{Binding DestinationY}" Margin="4,0,0,0" ToolTip="Y 위치" AutomationProperties.Name="Y 위치" /></UniformGrid>
+                                        <StackPanel Orientation="Horizontal" Margin="0,12,0,4"><ContentControl Content="{StaticResource Icon.AspectRatio}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" ToolTip="표시 크기" /><TextBlock Text="너비 / 높이" VerticalAlignment="Center" FontSize="11" Margin="8,0,0,0" /></StackPanel>
+                                        <UniformGrid Columns="2"><TextBox Text="{Binding DestinationWidth}" Margin="0,0,4,0" AutomationProperties.Name="표시 너비" /><TextBox Text="{Binding DestinationHeight}" Margin="4,0,0,0" AutomationProperties.Name="표시 높이" /></UniformGrid>
+                                        <CheckBox x:Name="AspectLockCheckBox" Style="{StaticResource AspectLockIconCheckBox}" IsChecked="{Binding AspectRatioLocked}" Margin="0,4,0,4" HorizontalAlignment="Left" />
+                                        <ComboBox x:Name="FitCombo" ItemsSource="{Binding DataContext.FitChoices, RelativeSource={RelativeSource AncestorType=Window}}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding FitMode}" AutomationProperties.Name="영상 맞춤 방식" />
+                                        <Border Height="1" Background="{StaticResource SoftHairlineBrush}" Margin="0,24,0,0" />
+                                        <TextBlock Text="자르기" Style="{StaticResource FieldLabel}" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <Button x:Name="EditRoiButton" Content="{StaticResource Icon.Crop}" Style="{StaticResource MaterialIconButton}" ToolTip="별도 창에서 ROI 편집 · 프리뷰에서는 오른쪽 버튼 드래그" Click="EditRoi_Click" Margin="0,0,8,0" />
+                                            <TextBlock Text="ROI 편집" FontSize="13" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Text="프리뷰에서 우클릭 드래그" FontSize="11" Margin="0,0,0,8" />
+                                        <TextBlock Text="X / Y" FontSize="11" Margin="0,0,0,4" />
+                                        <UniformGrid Columns="2"><TextBox x:Name="RoiXInput" Text="{Binding RoiX, UpdateSourceTrigger=LostFocus}" Margin="0,0,4,0" AutomationProperties.Name="ROI X" /><TextBox x:Name="RoiYInput" Text="{Binding RoiY, UpdateSourceTrigger=LostFocus}" Margin="4,0,0,0" AutomationProperties.Name="ROI Y" /></UniformGrid>
+                                        <TextBlock Text="너비 / 높이" FontSize="11" Margin="0,8,0,4" />
+                                        <UniformGrid Columns="2"><TextBox x:Name="RoiWidthInput" Text="{Binding RoiWidth, UpdateSourceTrigger=LostFocus}" Margin="0,0,4,0" AutomationProperties.Name="ROI 너비" /><TextBox x:Name="RoiHeightInput" Text="{Binding RoiHeight, UpdateSourceTrigger=LostFocus}" Margin="4,0,0,0" AutomationProperties.Name="ROI 높이" /></UniformGrid>
+                                        <Border Height="1" Background="{StaticResource SoftHairlineBrush}" Margin="0,24,0,0" />
+                                        <TextBlock Text="오디오" Style="{StaticResource FieldLabel}" />
+                                        <DockPanel><TextBlock DockPanel.Dock="Right" Text="{Binding VolumePercent, StringFormat={}{0:F0}%}" VerticalAlignment="Center" Margin="8,0,0,0" /><Slider Minimum="0" Maximum="200" Value="{Binding VolumePercent}" AutomationProperties.Name="영상 오디오 볼륨" /></DockPanel>
+                                        <CheckBox x:Name="InspectorAudioCheckBox" Style="{StaticResource AudioIconCheckBox}" IsChecked="{Binding IncludeAudio}" IsEnabled="{Binding HasAudio}" HorizontalAlignment="Left" />
+                                        <TextBlock Text="레이어" Style="{StaticResource FieldLabel}" />
+                                        <StackPanel Orientation="Horizontal"><Button x:Name="SendBackwardButton" Content="{StaticResource Icon.FlipToBack}" Click="SendBackward_Click" Style="{StaticResource MaterialIconButton}" ToolTip="선택한 영상을 뒤로 보내기" Margin="0,0,8,0" /><Button x:Name="BringForwardButton" Content="{StaticResource Icon.FlipToFront}" Click="BringForward_Click" Style="{StaticResource MaterialIconButton}" ToolTip="선택한 영상을 앞으로 가져오기" /></StackPanel>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
                 </Grid>
             </Border>
         </Grid>
-        <Thumb x:Name="TimelineHeightSplitter" Grid.Row="2" Height="6" Cursor="SizeNS" DragDelta="TimelineHeight_DragDelta" ToolTip="타임라인 높이 조절">
+        <Thumb x:Name="TimelineHeightSplitter" Grid.Row="1" Height="8" Cursor="SizeNS" DragDelta="TimelineHeight_DragDelta" ToolTip="타임라인 높이 조절">
 <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent"><Border Width="64" Height="2" Background="{StaticResource HairlineBrush}" VerticalAlignment="Center"/></Border></ControlTemplate></Thumb.Template></Thumb>
-<Border Grid.Row="3" Margin="12,0,12,6" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="12" Padding="10,4,10,2">
+<Border Grid.Row="2" Background="{StaticResource CanvasBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="0" Padding="8">
 <Grid x:Name="IntegratedTimeline" ClipToBounds="True" SizeChanged="Timeline_SizeChanged">
 <Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <Grid x:Name="TransportBar" Grid.Row="0" >
@@ -209,7 +227,7 @@
                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <TextBlock x:Name="PlaybackTimeDisplay" Text="{Binding PlayheadText}" FontSize="13" FontWeight="SemiBold" />
                         <TextBlock Text="·" Margin="12,0" />
-                        <TextBlock Text="{Binding PlaybackStartText}" FontSize="12" />
+                        <TextBlock Text="{Binding PlaybackStartText}" FontSize="13" />
                         <ContentControl ToolTip="{Binding PlaybackStateText}" Width="18" Height="18" Margin="12,0,0,0"><ContentControl.Style><Style TargetType="ContentControl" BasedOn="{StaticResource MaterialIcon}"><Setter Property="Content" Value="{StaticResource Icon.Stop}" /><Style.Triggers><DataTrigger Binding="{Binding IsPlaying}" Value="True"><Setter Property="Content" Value="{StaticResource Icon.PlayArrow}" /></DataTrigger><DataTrigger Binding="{Binding CurrentPlaybackState}" Value="Paused"><Setter Property="Content" Value="{StaticResource Icon.Pause}" /></DataTrigger></Style.Triggers></Style></ContentControl.Style></ContentControl>
                     </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
@@ -218,7 +236,7 @@
 <Button x:Name="FitTimelineButton" Content="{StaticResource Icon.AspectRatio}" Style="{StaticResource MaterialIconButton}" ToolTip="타임라인 전체 보기" Click="FitTimeline_Click"/>
 </StackPanel></Grid>
 <WrapPanel x:Name="ExportRangeToolbar" Grid.Row="1" Margin="0,2,0,6" IsEnabled="{Binding CanEditExportRange}">
-    <TextBlock Text="내보내기 구간" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+    <TextBlock Text="내보내기 구간" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
     <TextBlock Text="시작" VerticalAlignment="Center" Margin="0,0,6,0"/>
     <TextBox x:Name="ExportStartInput" Width="80" Text="{Binding ExportStartSeconds, StringFormat=F3, UpdateSourceTrigger=LostFocus}" ToolTip="내보내기 시작 (초)" AutomationProperties.Name="내보내기 시작 시각"/>
     <Button x:Name="SetExportStartButton" Content="현재 → 시작" Click="SetExportStart_Click" ToolTip="현재 재생 위치를 내보내기 시작으로 지정" Padding="8,4" Margin="4,0,12,0"/>
@@ -226,7 +244,7 @@
     <TextBox x:Name="ExportEndInput" Width="80" Text="{Binding ExportEndSeconds, StringFormat=F3, UpdateSourceTrigger=LostFocus}" ToolTip="내보내기 종료 경계 (초) · 이 시각 직전까지 저장" AutomationProperties.Name="내보내기 종료 시각"/>
     <Button x:Name="SetExportEndButton" Content="현재 → 종료" Click="SetExportEnd_Click" ToolTip="현재 재생 위치를 종료 경계로 지정 · 이 시각 직전까지 저장" Padding="8,4" Margin="4,0,8,0"/>
     <Button x:Name="ResetExportRangeButton" Content="전체 구간" Click="ResetExportRange_Click" ToolTip="0초부터 전체 종료까지 복원" Padding="8,4" Margin="0,0,12,0"/>
-    <TextBlock Text="{Binding ExportRangeText}" VerticalAlignment="Center" FontSize="12"/>
+    <TextBlock Text="{Binding ExportRangeText}" VerticalAlignment="Center" FontSize="13"/>
 </WrapPanel>
 <Grid x:Name="TimelineBody" Grid.Row="2">
 <Grid.ColumnDefinitions><ColumnDefinition x:Name="TimelineLabelColumn" Width="204" MinWidth="180"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -258,25 +276,25 @@
 <Grid x:Name="TimelineContent" HorizontalAlignment="Left">
 <Grid.RenderTransform><TranslateTransform x:Name="TimelineTranslation"/></Grid.RenderTransform>
 <Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="*"/><RowDefinition Height="*"/><RowDefinition Height="*"/><RowDefinition Height="32"/></Grid.RowDefinitions>
-<Canvas x:Name="TimelineVideo1" Grid.Row="1" Background="White" ClipToBounds="True" IsEnabled="{Binding IsEditingEnabled}">
+<Canvas x:Name="TimelineVideo1" Grid.Row="1" Background="{StaticResource CanvasBrush}" ClipToBounds="True" IsEnabled="{Binding IsEditingEnabled}">
                     <Border Height="{Binding ActualHeight, ElementName=TimelineVideo1, Converter={StaticResource ClipHeight}}" DataContext="{Binding Video1}" Style="{StaticResource VideoTimelineClip}" MouseLeftButtonDown="TimelineClip_MouseLeftButtonDown" MouseMove="TimelineClip_MouseMove" MouseLeftButtonUp="TimelineClip_MouseLeftButtonUp" LostMouseCapture="TimelineClip_LostMouseCapture">
                         <Border.Width><MultiBinding Converter="{StaticResource TimelineWidth}"><Binding Path="DurationSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" ElementName="TimelineVideo1" /></MultiBinding></Border.Width>
                         <Canvas.Left><MultiBinding Converter="{StaticResource TimelinePosition}"><Binding Path="StartSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" ElementName="TimelineVideo1" /></MultiBinding></Canvas.Left>
-                        <StackPanel Margin="12,0"><TextBlock Text="{Binding DisplayName}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="10" /></StackPanel>
+                        <StackPanel Margin="12,0"><TextBlock Text="{Binding DisplayName}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="11" /></StackPanel>
                     </Border>
                 </Canvas>
-<Canvas x:Name="TimelineVideo2" Grid.Row="2" Background="White" ClipToBounds="True" IsEnabled="{Binding IsEditingEnabled}">
+<Canvas x:Name="TimelineVideo2" Grid.Row="2" Background="{StaticResource CanvasBrush}" ClipToBounds="True" IsEnabled="{Binding IsEditingEnabled}">
                     <Border Height="{Binding ActualHeight, ElementName=TimelineVideo2, Converter={StaticResource ClipHeight}}" DataContext="{Binding Video2}" Style="{StaticResource VideoTimelineClip}" MouseLeftButtonDown="TimelineClip_MouseLeftButtonDown" MouseMove="TimelineClip_MouseMove" MouseLeftButtonUp="TimelineClip_MouseLeftButtonUp" LostMouseCapture="TimelineClip_LostMouseCapture">
                         <Border.Width><MultiBinding Converter="{StaticResource TimelineWidth}"><Binding Path="DurationSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" ElementName="TimelineVideo2" /></MultiBinding></Border.Width>
                         <Canvas.Left><MultiBinding Converter="{StaticResource TimelinePosition}"><Binding Path="StartSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" ElementName="TimelineVideo2" /></MultiBinding></Canvas.Left>
-                        <StackPanel Margin="12,0"><TextBlock Text="{Binding DisplayName}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="10" /></StackPanel>
+                        <StackPanel Margin="12,0"><TextBlock Text="{Binding DisplayName}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="11" /></StackPanel>
                     </Border>
                 </Canvas>
-<Canvas x:Name="TimelineAudio" Grid.Row="3" Background="White" ClipToBounds="True" IsEnabled="{Binding IsEditingEnabled}">
+<Canvas x:Name="TimelineAudio" Grid.Row="3" Background="{StaticResource CanvasBrush}" ClipToBounds="True" IsEnabled="{Binding IsEditingEnabled}">
                     <Border Height="{Binding ActualHeight, ElementName=TimelineAudio, Converter={StaticResource ClipHeight}}" DataContext="{Binding Audio}" Style="{StaticResource TimelineClip}" MouseLeftButtonDown="TimelineClip_MouseLeftButtonDown" MouseMove="TimelineClip_MouseMove" MouseLeftButtonUp="TimelineClip_MouseLeftButtonUp" LostMouseCapture="TimelineClip_LostMouseCapture">
                         <Border.Width><MultiBinding Converter="{StaticResource TimelineWidth}"><Binding Path="DurationSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" ElementName="TimelineAudio" /></MultiBinding></Border.Width>
                         <Canvas.Left><MultiBinding Converter="{StaticResource TimelinePosition}"><Binding Path="StartSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" ElementName="TimelineAudio" /></MultiBinding></Canvas.Left>
-                        <StackPanel Margin="12,0"><TextBlock Text="{Binding DisplayName}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="10" /></StackPanel>
+                        <StackPanel Margin="12,0"><TextBlock Text="{Binding DisplayName}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="11" /></StackPanel>
                     </Border>
                 </Canvas>
 <Slider x:Name="PlayheadSlider" Grid.Row="4" Minimum="0" Maximum="{Binding OutputDurationSeconds}" Value="{Binding PlayheadSeconds, Mode=TwoWay}" IsMoveToPointEnabled="True" IsEnabled="{Binding CanNavigate}"
@@ -288,18 +306,18 @@
 </Grid>
 <controls:AxisRuler x:Name="TimelineRuler" Height="22" VerticalAlignment="Top" IsHitTestVisible="False"/>
 <Canvas x:Name="ExportRangeShadeOverlay" ClipToBounds="True" IsHitTestVisible="False">
-    <Border x:Name="ExportBeforeShade" Background="#20000000"/>
-    <Border x:Name="ExportAfterShade" Background="#20000000"/>
-    <Border x:Name="ExportRangeBand" Height="22" Background="#30D49A22"/>
-    <Border x:Name="ExportStartLine" Width="2" Background="#9B6500"/>
-    <Border x:Name="ExportEndLine" Width="2" Background="#9B6500"/>
+    <Border x:Name="ExportBeforeShade" Background="#201C1917"/>
+    <Border x:Name="ExportAfterShade" Background="#201C1917"/>
+    <Border x:Name="ExportRangeBand" Height="22" Background="#30CA8A04"/>
+    <Border x:Name="ExportStartLine" Width="2" Background="{StaticResource WarningBrush}"/>
+    <Border x:Name="ExportEndLine" Width="2" Background="{StaticResource WarningBrush}"/>
 </Canvas>
 <Canvas x:Name="TimelineMarkerOverlay" ClipToBounds="True" IsHitTestVisible="False">
 <ContentControl x:Name="PlaybackStartFlag" Content="{StaticResource Icon.Flag}" Style="{StaticResource MaterialIcon}" Width="16" Height="16"/>
 </Canvas>
 <Canvas x:Name="PlayheadOverlay" ClipToBounds="True">
 <Thumb x:Name="PlayheadBar" Width="12" Cursor="SizeWE" IsEnabled="{Binding CanNavigate}" ToolTip="현재 재생 위치 · 드래그하여 이동" DragStarted="PlayheadBar_DragStarted" DragDelta="PlayheadBar_DragDelta" DragCompleted="PlayheadBar_DragCompleted">
-<Thumb.Template><ControlTemplate TargetType="Thumb"><Grid Background="Transparent"><Border Width="2" Background="#8150C8" HorizontalAlignment="Center"/><Border Width="6" Height="16" Background="#8150C8" VerticalAlignment="Bottom" Margin="0,0,0,8"/></Grid></ControlTemplate></Thumb.Template></Thumb>
+<Thumb.Template><ControlTemplate TargetType="Thumb"><Grid Background="Transparent"><Border Width="2" Background="{StaticResource PrimaryBrush}" HorizontalAlignment="Center"/><Border Width="6" Height="16" Background="{StaticResource PrimaryBrush}" VerticalAlignment="Bottom" Margin="0,0,0,8"/></Grid></ControlTemplate></Thumb.Template></Thumb>
 </Canvas>
 <Canvas x:Name="ExportRangeHandleOverlay" ClipToBounds="True">
     <Thumb x:Name="ExportStartHandle" Tag="[" Style="{StaticResource ExportBoundaryThumb}" IsEnabled="{Binding CanEditExportRange}" ToolTip="내보내기 시작 · 드래그로 이동" AutomationProperties.Name="내보내기 시작 경계" DragStarted="ExportRange_DragStarted" DragDelta="ExportRange_DragDelta" DragCompleted="ExportRange_DragCompleted"/>
@@ -307,11 +325,11 @@
 </Canvas></Grid>
 <ScrollBar x:Name="TimelineScrollBar" Grid.Column="2" Grid.Row="5" Orientation="Horizontal" Scroll="TimelineScrollBar_Scroll" ValueChanged="TimelineScrollBar_ValueChanged" AutomationProperties.Name="타임라인 가로 스크롤"/>
 </Grid></Grid></Border>
-        <Border Grid.Row="4" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="12,5">
+        <Border Grid.Row="3" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="12,5">
             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="200" /></Grid.ColumnDefinitions>
                 <Grid Margin="0,0,16,0"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <TextBlock Text="{Binding Status}" FontSize="11" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" FontWeight="SemiBold" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding ErrorMessage}" Margin="16,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" Foreground="{StaticResource ErrorBrush}" FontWeight="SemiBold" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding ErrorMessage}" Margin="16,0,0,0" VerticalAlignment="Center" />
                 </Grid>
                 <ProgressBar Grid.Column="1" Height="4" Minimum="0" Maximum="100" Value="{Binding ExportProgress, Mode=OneWay}" Visibility="{Binding IsExporting, Converter={StaticResource BoolToVisibility}}" />
             </Grid>

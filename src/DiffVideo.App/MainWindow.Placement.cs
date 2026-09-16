@@ -30,8 +30,9 @@ public partial class MainWindow
                 (HorizontalAlignment.Right, VerticalAlignment.Bottom)
             })
             {
-                var handle = new Border { Width = 16, Height = 16, Background = Brushes.White,
-                    BorderBrush = Brushes.MediumPurple, BorderThickness = new Thickness(2),
+                var handle = new Border { Width = 16, Height = 16,
+                    Background = new SolidColorBrush(Color.FromRgb(250, 250, 249)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(120, 113, 108)), BorderThickness = new Thickness(2),
                     HorizontalAlignment = horizontal, VerticalAlignment = vertical, IsHitTestVisible = false };
                 handle.SetBinding(VisibilityProperty, new Binding("IsSelected") { Converter = new BooleanToVisibilityConverter() });
                 grid.Children.Add(handle);

@@ -130,7 +130,7 @@ public partial class MainWindow : Window
         Canvas.SetTop(PreviewRoiSelection, _roiSelection.Y);
         PreviewRoiSelection.Width = _roiSelection.Width;
         PreviewRoiSelection.Height = _roiSelection.Height;
-        var scale = PreviewLogicalCanvas.TransformToAncestor(PreviewDropHost).TransformBounds(new Rect(0, 0, 1, 1)).Width;
+        var scale = PreviewCanvasScale();
         PreviewRoiSelection.StrokeThickness = 2 / Math.Max(0.01, scale);
         if (_roiDragBounds.Contains(point) && _roiDragSnapshot is { } snapshot)
         {
@@ -146,12 +146,19 @@ public partial class MainWindow : Window
     {
         if (_roiDragTrack is not { } track || _roiDragSnapshot is not { } snapshot || ViewModel is null) { return; }
         UpdatePreviewRoi(point);
-        var screenRect = PreviewLogicalCanvas.TransformToAncestor(PreviewDropHost).TransformBounds(_roiSelection);
-        var roi = screenRect.Width >= 3 && screenRect.Height >= 3
+        var scale = PreviewCanvasScale();
+        var roi = _roiSelection.Width * scale >= 3 && _roiSelection.Height * scale >= 3
             ? Core.PreviewRoiSelection.Map(snapshot, _roiDragOrigin.X, _roiDragOrigin.Y, point.X, point.Y) : null;
         EndPreviewRoi();
         if (roi is { } selected) { await ViewModel.ApplyRoiAsync(track, selected); }
         else { ViewModel.ReportInteraction("ROI 변경 없음 · 사각형을 드래그해 선택하세요."); }
+    }
+
+    private double PreviewCanvasScale()
+    {
+        if (PreviewLogicalCanvas.ActualWidth <= 0 || PreviewLogicalCanvas.ActualHeight <= 0) { return 0; }
+        return Math.Min(PreviewViewbox.ActualWidth / PreviewLogicalCanvas.ActualWidth,
+            PreviewViewbox.ActualHeight / PreviewLogicalCanvas.ActualHeight);
     }
 
     internal void CancelPreviewRoi()

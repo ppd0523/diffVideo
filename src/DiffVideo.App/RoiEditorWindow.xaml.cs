@@ -35,8 +35,8 @@ public partial class RoiEditorWindow : Window
         SourceImage.Source = DecodePng(png);
         for (var i = 0; i < _handles.Length; i++)
         {
-            _handles[i] = new Rectangle { Width = 8, Height = 8, Fill = Brushes.White,
-                Stroke = (Brush)FindResource("InkBrush"), StrokeThickness = 1 };
+            _handles[i] = new Rectangle { Width = 8, Height = 8,
+                Fill = (Brush)FindResource("CanvasBrush"), Stroke = (Brush)FindResource("PrimaryBrush"), StrokeThickness = 1 };
             HandleCanvas.Children.Add(_handles[i]);
         }
         UpdateGridState();

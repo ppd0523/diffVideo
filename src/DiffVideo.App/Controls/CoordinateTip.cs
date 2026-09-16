@@ -18,14 +18,16 @@ public sealed class CoordinateTip : FrameworkElement
     {
         if (Coordinates is null) { return; }
         var text = new FormattedText(Coordinates, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-            new Typeface("Segoe UI"), 12, Brushes.Black, VisualTreeHelper.GetDpi(this).PixelsPerDip);
-        var width = text.Width + 12; var height = text.Height + 8;
+            new Typeface(new FontFamily("Inter, Segoe UI"), FontStyles.Normal, FontWeights.Medium, FontStretches.Normal),
+            13, new SolidColorBrush(Color.FromRgb(28, 25, 23)), VisualTreeHelper.GetDpi(this).PixelsPerDip);
+        var width = text.Width + 28; var height = text.Height + 16;
         var x = _point.X + 16; var y = _point.Y + 18;
         if (x + width > ActualWidth) { x = _point.X - width - 12; }
         if (y + height > ActualHeight) { y = _point.Y - height - 12; }
         x = Math.Clamp(x, 0, Math.Max(0, ActualWidth - width));
         y = Math.Clamp(y, 0, Math.Max(0, ActualHeight - height));
-        dc.DrawRoundedRectangle(Brushes.White, new Pen(Brushes.Gray, 1), new Rect(x, y, width, height), 4, 4);
-        dc.DrawText(text, new Point(x + 6, y + 4));
+        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(250, 250, 249)),
+            new Pen(new SolidColorBrush(Color.FromRgb(214, 211, 209)), 1), new Rect(x, y, width, height));
+        dc.DrawText(text, new Point(x + 14, y + 8));
     }
 }

@@ -20,7 +20,7 @@ public sealed class SourcePixelGrid : FrameworkElement
     {
         if (PixelScale <= 0 || ImageBounds.IsEmpty) { return; }
         dc.PushClip(new RectangleGeometry(ImageBounds));
-        var pen = new Pen(new SolidColorBrush(Color.FromArgb(150, 128, 128, 128)), 1);
+        var pen = new Pen(new SolidColorBrush(Color.FromArgb(120, 168, 162, 158)), 1);
         for (var x = Spacing; x < _width; x += Spacing)
         {
             var position = ImageBounds.Left + x * PixelScale;

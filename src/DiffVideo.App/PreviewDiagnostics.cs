@@ -289,7 +289,16 @@ internal static partial class PreviewDiagnostics
             Assert(Math.Abs(vm.PlayheadSeconds - 10 - 1d / vm.OutputFps) < 0.00001, "Frame button wiring");
             checks.AddRange(["Empty / loaded button state", "Slider template / seek binding", "Frame button click"]);
 
-            foreach (var combo in new[] { window.FpsCombo, window.QualityCombo, window.FitCombo })
+            window.CanvasSettingsTab.IsSelected = true;
+            await window.Dispatcher.InvokeAsync(window.UpdateLayout, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            Assert(window.CanvasSettingsTab.IsSelected && window.FpsCombo.IsVisible && window.QualityCombo.IsVisible, "Canvas tab shows output settings");
+            Assert(window.CanvasSettingsTab.ActualWidth + window.VideoSettingsTab.ActualWidth +
+                window.CanvasSettingsTab.Margin.Left + window.CanvasSettingsTab.Margin.Right +
+                window.VideoSettingsTab.Margin.Left + window.VideoSettingsTab.Margin.Right <= window.SettingsTabs.ActualWidth + 1,
+                "Settings tab headers fit without clipping");
+            Assert(window.InspectorPanel.IsAncestorOf(window.AboutButton) && window.InspectorPanel.IsAncestorOf(window.OpenFilesButton) && window.InspectorPanel.IsAncestorOf(window.ExportButton), "Global actions remain at the inspector top");
+            SaveScreenshot(window, prefix + "-canvas-settings.png");
+            foreach (var combo in new[] { window.FpsCombo, window.QualityCombo })
             {
                 combo.BringIntoView();
                 combo.IsDropDownOpen = true;
@@ -300,6 +309,17 @@ internal static partial class PreviewDiagnostics
                 Assert(item is not null && item.ActualHeight >= 28, "Combo items rendered");
                 combo.IsDropDownOpen = false;
             }
+            window.VideoSettingsTab.IsSelected = true;
+            await window.Dispatcher.InvokeAsync(window.UpdateLayout, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            Assert(window.VideoSettingsTab.IsSelected && window.FitCombo.IsVisible, "Video tab shows track settings");
+            window.FitCombo.BringIntoView();
+            window.FitCombo.IsDropDownOpen = true;
+            await window.Dispatcher.InvokeAsync(window.UpdateLayout, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            var fitPopup = (System.Windows.Controls.Primitives.Popup)window.FitCombo.Template.FindName("PART_Popup", window.FitCombo);
+            Assert(fitPopup.IsOpen && fitPopup.Child is FrameworkElement { ActualWidth: > 0 }, "Fit popup template");
+            var fitItem = (ComboBoxItem)window.FitCombo.ItemContainerGenerator.ContainerFromIndex(0);
+            Assert(fitItem is not null && fitItem.ActualHeight >= 28, "Fit items rendered");
+            window.FitCombo.IsDropDownOpen = false;
             checks.Add("FPS / quality / fit popup templates");
             var originalFps = vm.OutputFps;
             window.FpsCombo.SelectedIndex = 0;
