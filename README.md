@@ -100,6 +100,10 @@ H.264/AAC MP4로 합성하는 portable WPF 애플리케이션입니다.
 Windows 플레이어가 원본 코덱을 열지 못하면 포함된 FFmpeg로 해당 원본만
 디코딩합니다. 프리뷰의 색감·HDR 밝기·세부 화질은 최종 출력과 다를 수 있습니다.
 
+창 크기·마지막 위치·최대화 상태, 출력 설정, 마지막 내보내기 폴더, 타임라인 높이와
+확대 비율은 `%LOCALAPPDATA%\DiffVideo\settings.json`에 저장하고 다음 실행 때 복원합니다.
+설정 파일이 없거나 손상되었거나 지원하지 않는 버전이면 기본값으로 시작합니다.
+
 프리뷰 구조와 검증 방법은 [프리뷰 설계](docs/PREVIEW-ARCHITECTURE.md)에 있습니다.
 [리소스 비교 결과](docs/RESOURCE-COMPARISON.md)는 감소 목표 없이 관찰한 수치입니다.
 [UI 디자인 적용](docs/UI-DESIGN.md)은 `DESIGN.md`의 흑백·라일락 스타일을

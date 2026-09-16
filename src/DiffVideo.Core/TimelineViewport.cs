@@ -8,6 +8,7 @@ public sealed class TimelineViewport
     public double PixelsPerSecond { get; private set; } = 1;
     public double Offset { get; private set; }
     public bool IsFit { get; private set; } = true;
+    public double ZoomRatio => Math.Max(1, PixelsPerSecond / Math.Max(0.000001, Width / Duration));
     public double ContentWidth => Math.Max(Width, Duration * PixelsPerSecond);
     public double MaximumOffset => Math.Max(0, ContentWidth - Width);
     public double Position(double seconds) => seconds * PixelsPerSecond - Offset;
@@ -34,6 +35,15 @@ public sealed class TimelineViewport
         PixelsPerSecond = Math.Clamp(PixelsPerSecond * factor, Width / Duration, Math.Max(240, Width / Duration));
         IsFit = Math.Abs(PixelsPerSecond - Width / Duration) < 0.000001;
         Scroll(playhead * PixelsPerSecond - anchor);
+    }
+
+    public void RestoreZoomRatio(double ratio)
+    {
+        var fitScale = Width / Duration;
+        if (!double.IsFinite(ratio)) { ratio = 1; }
+        PixelsPerSecond = Math.Clamp(fitScale * Math.Max(1, ratio), fitScale, Math.Max(240, fitScale));
+        IsFit = Math.Abs(PixelsPerSecond - fitScale) < 0.000001;
+        Offset = 0;
     }
 
     public void Scroll(double offset) => Offset = Math.Clamp(offset, 0, MaximumOffset);

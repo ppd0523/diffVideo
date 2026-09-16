@@ -21,7 +21,21 @@ internal static partial class PreviewDiagnostics
         var mode = args[1];
         var report = Path.GetFullPath(args[5]);
         Directory.CreateDirectory(Path.GetDirectoryName(report)!);
-        Window window = mode is "checks" or "ui" or "features" or "roi" or "placement" or "export-range" or "layers" ? new MainWindow() : new Window
+        UserSettingsStore? settingsStore = null;
+        if (mode == "settings")
+        {
+            var settingsDirectory = Directory.CreateTempSubdirectory("DiffVideo-settings-diagnostics-").FullName;
+            settingsStore = new(Path.Combine(settingsDirectory, "settings.json"));
+            settingsStore.Save(new()
+            {
+                Window = new() { Width = 1280, Height = 780, Left = 80, Top = 60 },
+                Output = new() { Width = 1280, Height = 720, FramesPerSecond = 25, DurationSeconds = 19, Quality = OutputQuality.High },
+                Timeline = new() { Height = 300, ZoomRatio = 4 },
+                LastExportDirectory = settingsDirectory
+            });
+        }
+        Window window = mode is "checks" or "ui" or "features" or "roi" or "placement" or "export-range" or "layers" or "settings"
+            ? new MainWindow(settingsStore) : new Window
         {
             Title = "DiffVideo 프리뷰 측정 · " + mode,
             Width = 1000,
@@ -41,6 +55,7 @@ internal static partial class PreviewDiagnostics
                 else if (mode == "placement") { await CheckPlacementAsync((MainWindow)window, args[2..5], report); }
                 else if (mode == "export-range") { await CheckExportRangeAsync((MainWindow)window, args[2..5], report); }
                 else if (mode == "layers") { await CheckLayersAsync((MainWindow)window, args[2..5], report); }
+                else if (mode == "settings") { await CheckSettingsAsync((MainWindow)window, settingsStore!, report); }
                 else { await MeasureAsync(window, mode, args[2..5], report, int.Parse(args[6], System.Globalization.CultureInfo.InvariantCulture)); }
                 window.Close();
             }

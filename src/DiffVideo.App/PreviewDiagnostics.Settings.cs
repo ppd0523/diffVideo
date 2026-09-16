@@ -1,0 +1,50 @@
+using System.IO;
+using System.Text.Json;
+using System.Windows;
+using DiffVideo.App.Services;
+using DiffVideo.Core;
+
+namespace DiffVideo.App;
+
+internal static partial class PreviewDiagnostics
+{
+    private static async Task CheckSettingsAsync(MainWindow window, UserSettingsStore store, string report)
+    {
+        var vm = window.ViewModel!;
+        window.UpdateLayout();
+        Assert(Math.Abs(window.Width - 1280) < 1 && Math.Abs(window.Height - 780) < 1, "Window size restored");
+        Assert(window.WindowStartupLocation == WindowStartupLocation.Manual && double.IsFinite(window.Left) && double.IsFinite(window.Top), "Window position restored and visible");
+        Assert(vm.CanvasWidth == 1280 && vm.CanvasHeight == 720 && vm.OutputFps == 25 && vm.OutputDurationSeconds == 19 && vm.Quality == OutputQuality.High, "Output settings restored");
+        Assert(Math.Abs(window.TimelineRow.ActualHeight - 300) < 1 && Math.Abs(window.TimelineView.ZoomRatio - 4) < 0.001, "Timeline height and zoom restored");
+
+        vm.CanvasWidth = 1920;
+        vm.CanvasHeight = 1080;
+        vm.OutputFps = 30;
+        vm.OutputDurationSeconds = 42;
+        vm.Quality = OutputQuality.Small;
+        window.ResizeTimelineHeight(320);
+        window.UpdateLayout();
+        window.TimelineView.RestoreZoomRatio(2);
+        window.SaveUserSettings();
+        var saved = store.Load();
+        Assert(saved.SchemaVersion == UserSettings.CurrentSchemaVersion && saved.Output == new OutputUserSettings
+        {
+            Width = 1920, Height = 1080, FramesPerSecond = 30, DurationSeconds = 42, Quality = OutputQuality.Small
+        }, "Output settings round trip");
+        Assert(Math.Abs(saved.Timeline.Height - 320) < 1 && Math.Abs(saved.Timeline.ZoomRatio - 2) < 0.001, "Timeline settings round trip");
+        Assert(saved.LastExportDirectory == Path.GetDirectoryName(store.SettingsPath), "Last export directory round trip");
+        Assert(!Directory.EnumerateFiles(Path.GetDirectoryName(store.SettingsPath)!, "*.tmp").Any(), "Atomic save leaves no temporary file");
+
+        await File.WriteAllTextAsync(store.SettingsPath, "{ damaged json");
+        var fallback = store.Load();
+        Assert(fallback == new UserSettings(), "Damaged settings fall back to defaults");
+        await File.WriteAllTextAsync(store.SettingsPath, "{\"SchemaVersion\":1,\"Window\":null}");
+        Assert(store.Load() == new UserSettings(), "Incomplete settings fall back to defaults");
+        await File.WriteAllTextAsync(report, JsonSerializer.Serialize(new { Success = true, SettingsPath = store.SettingsPath, Checks = new[]
+        {
+            "Window size and last visible position", "Output settings", "Timeline height and zoom ratio",
+            "Atomic JSON save and load", "Damaged or incomplete JSON fallback"
+        } }, JsonOptions));
+        Directory.Delete(Path.GetDirectoryName(store.SettingsPath)!, recursive: true);
+    }
+}

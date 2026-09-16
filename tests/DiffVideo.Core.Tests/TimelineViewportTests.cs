@@ -50,4 +50,20 @@ public sealed class TimelineViewportTests
         view.Resize(1000, 100); view.Zoom(1000, 50);
         Assert.Equal(240, view.PixelsPerSecond);
     }
+
+    [Theory]
+    [InlineData(1, true, 10)]
+    [InlineData(4, false, 40)]
+    [InlineData(1000, false, 240)]
+    [InlineData(double.NaN, true, 10)]
+    public void RestoreZoomRatioClampsAndStartsAtTimelineBeginning(double ratio, bool isFit, double scale)
+    {
+        var view = new TimelineViewport();
+        view.Resize(1000, 100);
+        view.Scroll(500);
+        view.RestoreZoomRatio(ratio);
+        Assert.Equal(isFit, view.IsFit);
+        Assert.Equal(scale, view.PixelsPerSecond);
+        Assert.Equal(0, view.Offset);
+    }
 }

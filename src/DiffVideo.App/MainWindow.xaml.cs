@@ -7,6 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using DiffVideo.App.ViewModels;
+using DiffVideo.App.Services;
 using DiffVideo.Core;
 using DiffVideo.Infrastructure;
 using Microsoft.Win32;
@@ -35,16 +36,32 @@ public partial class MainWindow : Window
     private Rect _roiDragBounds;
     private Rect _roiSelection;
     private bool _spaceHeld;
+    private readonly UserSettingsStore? _settingsStore;
+    private UserSettings _userSettings = new();
+    private string? _lastExportDirectory;
 
-    public MainWindow()
+    public MainWindow() : this(new UserSettingsStore(), saveOnClose: true)
     {
+    }
+
+    internal MainWindow(UserSettingsStore? settingsStore, bool saveOnClose = false)
+    {
+        _settingsStore = settingsStore;
+        _userSettings = settingsStore?.Load() ?? new();
         InitializeComponent();
         InitializePlacementHandles();
+        RestoreWindowSettings(_userSettings.Window);
         try
         {
             ViewModel = new(FfmpegPaths.Discover());
+            RestoreOutputSettings(_userSettings.Output);
             DataContext = ViewModel;
             InitializeTimeline();
+            Loaded += (_, _) => RestoreTimelineSettings(_userSettings.Timeline);
+            if (saveOnClose) { Closed += (_, _) => SaveUserSettings(); }
+            _lastExportDirectory = Directory.Exists(_userSettings.LastExportDirectory)
+                ? _userSettings.LastExportDirectory
+                : null;
             ViewModel.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(MainViewModel.SelectedVideo) ||
@@ -282,8 +299,11 @@ public partial class MainWindow : Window
             OverwritePrompt = true,
             FileName = $"{DateTime.Now.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}-{Guid.NewGuid().ToString("N")[..4]}.mp4"
         };
+        if (_lastExportDirectory is not null) { dialog.InitialDirectory = _lastExportDirectory; }
         if (dialog.ShowDialog(this) == true)
         {
+            _lastExportDirectory = Path.GetDirectoryName(dialog.FileName);
+            SaveUserSettings();
             await ViewModel.ExportAsync(confirmation.ConfirmedComposition, dialog.FileName, overwrite: true);
         }
     }
