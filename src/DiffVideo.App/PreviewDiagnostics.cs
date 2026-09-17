@@ -261,12 +261,12 @@ internal static partial class PreviewDiagnostics
             await CaptureAsync("loaded", 1440, 900);
             await CaptureAsync("loaded-minimum", 1120, 720);
 
-            foreach (var button in new[] { window.AboutButton, window.OpenFilesButton, window.ExportButton, window.CancelExportButton,
+            foreach (var button in new[] { window.ExportButton, window.CancelExportButton,
                 window.PlayButton, window.PauseButton, window.StopButton, window.PreviousFrameButton, window.NextFrameButton,
                 window.SetStartButton, window.EditRoiButton, window.ResetRoiButton, window.SendBackwardButton, window.BringForwardButton })
             {
                 AssertMaterialIcon(button);
-                Assert(button.ActualWidth >= 40 || button.Visibility == Visibility.Collapsed, "Icon button hit target");
+                Assert(button.ActualWidth >= 33.5 || button.Visibility == Visibility.Collapsed, "Icon button hit target");
                 var peer = new System.Windows.Automation.Peers.ButtonAutomationPeer(button);
                 Assert(!string.IsNullOrWhiteSpace(peer.GetName()), "Icon button accessible name");
                 Assert(ToolTipService.GetShowOnDisabled(button), "Disabled icon button tooltip");
@@ -291,24 +291,13 @@ internal static partial class PreviewDiagnostics
 
             window.CanvasSettingsTab.IsSelected = true;
             await window.Dispatcher.InvokeAsync(window.UpdateLayout, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-            Assert(window.CanvasSettingsTab.IsSelected && window.FpsCombo.IsVisible && window.QualityCombo.IsVisible, "Canvas tab shows output settings");
+            Assert(window.CanvasSettingsTab.IsSelected && window.FpsInput.IsVisible && window.QualityHighButton.IsVisible, "Canvas tab shows output settings");
             Assert(window.CanvasSettingsTab.ActualWidth + window.VideoSettingsTab.ActualWidth +
                 window.CanvasSettingsTab.Margin.Left + window.CanvasSettingsTab.Margin.Right +
                 window.VideoSettingsTab.Margin.Left + window.VideoSettingsTab.Margin.Right <= window.SettingsTabs.ActualWidth + 1,
                 "Settings tab headers fit without clipping");
-            Assert(window.InspectorPanel.IsAncestorOf(window.AboutButton) && window.InspectorPanel.IsAncestorOf(window.OpenFilesButton) && window.InspectorPanel.IsAncestorOf(window.ExportButton), "Global actions remain at the inspector top");
+            Assert(window.ExportRangeToolbar.IsAncestorOf(window.ExportButton) && window.ExportRangeToolbar.IsAncestorOf(window.CancelExportButton), "Export and cancel actions are in the range toolbar");
             SaveScreenshot(window, prefix + "-canvas-settings.png");
-            foreach (var combo in new[] { window.FpsCombo, window.QualityCombo })
-            {
-                combo.BringIntoView();
-                combo.IsDropDownOpen = true;
-                await window.Dispatcher.InvokeAsync(window.UpdateLayout, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-                var popup = (System.Windows.Controls.Primitives.Popup)combo.Template.FindName("PART_Popup", combo);
-                Assert(popup.IsOpen && popup.Child is FrameworkElement { ActualWidth: > 0 }, "Combo popup template");
-                var item = (ComboBoxItem)combo.ItemContainerGenerator.ContainerFromIndex(0);
-                Assert(item is not null && item.ActualHeight >= 28, "Combo items rendered");
-                combo.IsDropDownOpen = false;
-            }
             window.VideoSettingsTab.IsSelected = true;
             await window.Dispatcher.InvokeAsync(window.UpdateLayout, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             Assert(window.VideoSettingsTab.IsSelected && window.FitCombo.IsVisible, "Video tab shows track settings");
@@ -318,14 +307,16 @@ internal static partial class PreviewDiagnostics
             var fitPopup = (System.Windows.Controls.Primitives.Popup)window.FitCombo.Template.FindName("PART_Popup", window.FitCombo);
             Assert(fitPopup.IsOpen && fitPopup.Child is FrameworkElement { ActualWidth: > 0 }, "Fit popup template");
             var fitItem = (ComboBoxItem)window.FitCombo.ItemContainerGenerator.ContainerFromIndex(0);
-            Assert(fitItem is not null && fitItem.ActualHeight >= 28, "Fit items rendered");
+            Assert(fitItem is not null && fitItem.ActualHeight >= 24, "Fit items rendered with compact padding");
             window.FitCombo.IsDropDownOpen = false;
-            checks.Add("FPS / quality / fit popup templates");
+            checks.Add("FPS input / quality presets / fit popup template");
             var originalFps = vm.OutputFps;
-            window.FpsCombo.SelectedIndex = 0;
-            Assert(Equals(window.FpsCombo.SelectedValue, vm.OutputFps), "FPS selection binding");
+            window.Fps24Button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            Assert(vm.OutputFps == 24, "FPS preset updates model");
+            window.QualityHighButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            Assert(vm.Quality == OutputQuality.High, "Quality preset updates model");
             vm.OutputFps = originalFps;
-            checks.Add("FPS selection updates model");
+            checks.Add("FPS and quality presets update model");
 
             var png = await vm.GetSourceFramePngAsync(vm.Video1);
             var media = vm.Video1.Media!;
@@ -624,8 +615,8 @@ internal static partial class PreviewDiagnostics
         window.RoiXInput.BringIntoView();
         window.RoiXInput.Focus();
         Assert(!RaiseKey(window, Key.Space).Handled && !vm.IsPlaying, "Space stays in numeric/text inputs");
-        window.FpsCombo.Focus();
-        Assert(!RaiseKey(window, Key.Space).Handled && !vm.IsPlaying, "Space stays in dropdowns");
+        window.FpsInput.Focus();
+        Assert(!RaiseKey(window, Key.Space).Handled && !vm.IsPlaying, "Space stays in FPS input");
         Assert(MainWindow.IsTextEntry(new PasswordBox()) && MainWindow.IsTextEntry(new RichTextBox()), "Text-entry guard includes password / rich text controls");
         window.PreviewLogicalCanvas.Focus();
         await window.HandleSpacePressAsync(true);

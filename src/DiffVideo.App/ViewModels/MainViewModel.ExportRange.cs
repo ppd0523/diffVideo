@@ -26,6 +26,42 @@ public sealed partial class MainViewModel
         ApplyExportRange(new(0, OutputDurationSeconds));
     }
 
+    public void SetOverlapExportRange()
+    {
+        if (!CanEditExportRange) { return; }
+        var start = Math.Max(Video1.StartSeconds, Video2.StartSeconds);
+        var end = Math.Min(OutputDurationSeconds, Math.Min(
+            Video1.StartSeconds + Video1.DurationSeconds,
+            Video2.StartSeconds + Video2.DurationSeconds));
+        if (end <= start)
+        {
+            Status = "두 영상이 겹치는 구간이 없어 내보내기 구간을 유지했습니다.";
+            return;
+        }
+
+        ApplyExportRange(ExportRange.Normalize(start, end, OutputDurationSeconds, OutputFps));
+        Status = "두 영상이 겹치는 구간을 내보내기 구간으로 설정했습니다.";
+    }
+
+    public void SetVideoExportRange()
+    {
+        if (!CanEditExportRange) { return; }
+        var requiredEnd = Math.Max(
+            Video1.StartSeconds + Video1.DurationSeconds,
+            Video2.StartSeconds + Video2.DurationSeconds);
+        if (requiredEnd > OutputDurationSeconds)
+        {
+            OutputDurationSeconds = requiredEnd;
+        }
+
+        var start = Math.Min(Video1.StartSeconds, Video2.StartSeconds);
+        var end = Math.Max(
+            Video1.StartSeconds + Video1.DurationSeconds,
+            Video2.StartSeconds + Video2.DurationSeconds);
+        ApplyExportRange(ExportRange.Normalize(start, end, OutputDurationSeconds, OutputFps));
+        Status = "두 영상의 전체 구간을 내보내기 구간으로 설정했습니다.";
+    }
+
     internal void ApplyExportRange(ExportRange range)
     {
         _exportStartSeconds = range.Start;

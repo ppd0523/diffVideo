@@ -172,13 +172,13 @@
         <Setter Property="CaretBrush" Value="{StaticResource InkBrush}" />
         <Setter Property="SelectionBrush" Value="{StaticResource LilacBrush}" />
         <Setter Property="SelectionOpacity" Value="0.6" />
-        <Setter Property="MinHeight" Value="40" />
-        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="MinHeight" Value="33.6" />
+        <Setter Property="Padding" Value="7.2,4.8" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <Border x:Name="Surface" CornerRadius="0" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}">
+                    <Border x:Name="Surface" CornerRadius="0" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
                         <ScrollViewer x:Name="PART_ContentHost" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -191,7 +191,7 @@
         </Setter>
     </Style>
     <Style TargetType="ComboBoxItem">
-        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Padding" Value="7.2,4.8" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
         <Setter Property="Template">
@@ -216,8 +216,8 @@
         <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource MediumBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="MinHeight" Value="40" />
-        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="MinHeight" Value="33.6" />
+        <Setter Property="Padding" Value="7.2,4.8" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
         <Setter Property="Template">
             <Setter.Value>
@@ -239,7 +239,7 @@
                             </ToggleButton.Template>
                         </ToggleButton>
                         <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" IsHitTestVisible="False" Margin="12,8,36,8" VerticalAlignment="Center" />
+                                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" IsHitTestVisible="False" Margin="7.2,4.8,31.2,4.8" VerticalAlignment="Center" />
                         <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False">
                             <Border Background="{StaticResource CanvasBrush}" BorderBrush="{StaticResource MediumBorderBrush}" BorderThickness="1" CornerRadius="0" Padding="0"
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
@@ -340,6 +340,40 @@
     <Style x:Key="AudioIconCheckBox" TargetType="CheckBox" BasedOn="{StaticResource MaterialIconCheckBox}">
         <Setter Property="Content" Value="{StaticResource Icon.VolumeOff}" />
         <Setter Property="ToolTip" Value="오디오 제외됨 · 클릭하여 포함" />
+        <Style.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Content" Value="{StaticResource Icon.VolumeUp}" />
+                <Setter Property="ToolTip" Value="오디오 포함됨 · 클릭하여 음소거" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="TimelineAudioIconCheckBox" TargetType="CheckBox">
+        <Setter Property="Content" Value="{StaticResource Icon.VolumeOff}" />
+        <Setter Property="ContentTemplate" Value="{StaticResource MaterialIconTemplate}" />
+        <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="MinWidth" Value="24" />
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="ToolTip" Value="오디오 제외됨 · 클릭하여 포함" />
+        <Setter Property="AutomationProperties.Name" Value="{Binding ToolTip, RelativeSource={RelativeSource Self}}" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+        <Setter Property="ToolTipService.InitialShowDelay" Value="300" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="Surface" Width="24" Height="24" Background="Transparent" BorderBrush="Transparent" BorderThickness="1">
+                        <ContentPresenter Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" /></Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" /></Trigger>
+                        <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4" /></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
         <Style.Triggers>
             <Trigger Property="IsChecked" Value="True">
                 <Setter Property="Content" Value="{StaticResource Icon.VolumeUp}" />

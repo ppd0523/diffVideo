@@ -316,11 +316,28 @@ public partial class MainWindow : Window
     }
 
     private void CancelExport_Click(object sender, RoutedEventArgs e) => ViewModel?.CancelExport();
+    private void SetOverlapRange_Click(object sender, RoutedEventArgs e) => ViewModel?.SetOverlapExportRange();
+    private void SetVideoRange_Click(object sender, RoutedEventArgs e) => ViewModel?.SetVideoExportRange();
     private void About_Click(object sender, RoutedEventArgs e) =>
         MessageBox.Show("DiffVideo 0.4.0\nMIT License\nMaterial Icons by Google · Apache-2.0\n\n이 프로그램은 LGPL 조건의 FFmpeg를 별도 실행 파일로 사용합니다. 자세한 내용은 THIRD-PARTY-NOTICES.md와 licenses 폴더를 확인하세요.", "DiffVideo 정보", MessageBoxButton.OK, MessageBoxImage.Information);
     private void Canvas720_Click(object sender, RoutedEventArgs e) => ViewModel?.ApplyCanvasPreset(1280, 720);
     private void Canvas1080_Click(object sender, RoutedEventArgs e) => ViewModel?.ApplyCanvasPreset(1920, 1080);
     private void Canvas4K_Click(object sender, RoutedEventArgs e) => ViewModel?.ApplyCanvasPreset(3840, 2160);
+    private void FpsPreset_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null && sender is Button { Tag: string value } && int.TryParse(value, out var fps))
+        {
+            ViewModel.OutputFps = fps;
+        }
+    }
+
+    private void QualityPreset_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null && sender is Button { Tag: string value } && Enum.TryParse<OutputQuality>(value, out var quality))
+        {
+            ViewModel.Quality = quality;
+        }
+    }
 
     private void MediaVideo_Click(object sender, RoutedEventArgs e)
     {
