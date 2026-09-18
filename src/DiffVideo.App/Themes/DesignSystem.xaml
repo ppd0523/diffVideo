@@ -152,6 +152,10 @@
         <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
         <Setter Property="ToolTipService.InitialShowDelay" Value="300" />
     </Style>
+    <Style x:Key="SegmentMaterialIconButton" TargetType="Button" BasedOn="{StaticResource MaterialIconButton}">
+        <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource WarningBrush}" />
+    </Style>
     <Style x:Key="PrimaryMaterialIconButton" TargetType="Button" BasedOn="{StaticResource MaterialIconButton}">
         <Setter Property="Width" Value="48" />
         <Setter Property="Height" Value="48" />

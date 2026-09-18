@@ -25,6 +25,10 @@ internal static partial class PreviewDiagnostics
         var segmentEnd = window.ExportEndLabel.TransformToAncestor(window.TransportBar).TransformBounds(new(window.ExportEndLabel.RenderSize));
         var presets = window.SegmentPresetGroup.TransformToAncestor(window.TransportBar).TransformBounds(new(window.SegmentPresetGroup.RenderSize));
         Assert(segmentEnd.Right <= presets.Left + 0.01, "Segment end label clears preset controls");
+        var fullControls = window.FullControlsGroup.TransformToAncestor(window.IntegratedTimeline).TransformBounds(new(window.FullControlsGroup.RenderSize));
+        var segmentControls = window.SegmentControlsGroup.TransformToAncestor(window.IntegratedTimeline).TransformBounds(new(window.SegmentControlsGroup.RenderSize));
+        Assert(Math.Abs(fullControls.Left - segmentControls.Left) < 0.01 && Math.Abs(fullControls.Right - segmentControls.Right) < 0.01,
+            "Full and segment controls align");
         var before = vm.BuildComposition();
         var anchor = window.TimelineView.Position(30);
         window.ZoomInButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
