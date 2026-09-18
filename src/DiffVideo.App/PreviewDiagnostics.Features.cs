@@ -22,6 +22,9 @@ internal static partial class PreviewDiagnostics
         vm.PlayheadSeconds = 30;
         await vm.RefreshStillPreviewAsync();
         window.UpdateLayout(); window.UpdateTimeline();
+        var segmentEnd = window.ExportEndLabel.TransformToAncestor(window.TransportBar).TransformBounds(new(window.ExportEndLabel.RenderSize));
+        var presets = window.SegmentPresetGroup.TransformToAncestor(window.TransportBar).TransformBounds(new(window.SegmentPresetGroup.RenderSize));
+        Assert(segmentEnd.Right <= presets.Left + 0.01, "Segment end label clears preset controls");
         var before = vm.BuildComposition();
         var anchor = window.TimelineView.Position(30);
         window.ZoomInButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
