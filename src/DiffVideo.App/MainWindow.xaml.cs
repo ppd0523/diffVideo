@@ -36,6 +36,9 @@ public partial class MainWindow : Window
     private Rect _roiDragBounds;
     private Rect _roiSelection;
     private bool _spaceHeld;
+    private string? _inlineTimeEdit;
+    private bool _inlineApplyMouseDown;
+    private bool _switchingInlineTimeEdit;
     private readonly UserSettingsStore? _settingsStore;
     private UserSettings _userSettings = new();
     private string? _lastExportDirectory;
@@ -276,6 +279,19 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void SelectedVideoFile_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not { IsEditingEnabled: true } vm) { return; }
+        var dialog = new OpenFileDialog
+        {
+            Title = $"{vm.SelectedVideo.Name} 영상 선택 또는 교체",
+            Filter = "MP4 영상 (*.mp4)|*.mp4",
+            Multiselect = false,
+            CheckFileExists = true
+        };
+        if (dialog.ShowDialog(this) == true) { await vm.LoadVideoAsync(vm.SelectedVideo, dialog.FileName); }
+    }
+
     private async void Export_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel is null || !ViewModel.HasComposition)
@@ -339,6 +355,130 @@ public partial class MainWindow : Window
         }
     }
 
+    private void InlineTimeLabel_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string kind } || !BeginInlineTimeEdit(kind)) { return; }
+        e.Handled = true;
+    }
+
+    private bool BeginInlineTimeEdit(string kind)
+    {
+        if (ViewModel is not { IsEditingEnabled: true } vm) { return false; }
+        if (kind is "Start" or "End" && !vm.CanEditExportRange) { return false; }
+        if (InlineTrack(kind) is VideoTrackViewModel { HasMedia: false } or AudioTrackViewModel { HasMedia: false }) { return false; }
+        _switchingInlineTimeEdit = true;
+        try
+        {
+            CancelInlineTimeEdit();
+            _inlineTimeEdit = kind;
+            var (label, editor, input) = InlineTimeControls(kind);
+            if (kind == "Start") { ExportBoundarySeparator.Visibility = ExportEndHost.Visibility = Visibility.Collapsed; }
+            else if (kind == "End") { ExportBoundarySeparator.Visibility = ExportStartHost.Visibility = Visibility.Collapsed; }
+            label.Visibility = Visibility.Collapsed;
+            editor.Visibility = Visibility.Visible;
+            input.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();
+            input.Focus();
+            input.SelectAll();
+            return true;
+        }
+        finally
+        {
+            _switchingInlineTimeEdit = false;
+        }
+    }
+
+    private async void InlineTimeInput_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string kind }) { return; }
+        if (e.Key == Key.Enter) { await CommitInlineTimeEditAsync(kind); e.Handled = true; }
+        else if (e.Key == Key.Escape) { CancelInlineTimeEdit(); e.Handled = true; }
+    }
+
+    private void InlineTimeApply_PreviewMouseDown(object sender, MouseButtonEventArgs e) => _inlineApplyMouseDown = true;
+    private async void InlineTimeApply_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string kind }) { await CommitInlineTimeEditAsync(kind); }
+    }
+
+    private void InlineTimeInput_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (!_inlineApplyMouseDown && !_switchingInlineTimeEdit) { CancelInlineTimeEdit(); }
+    }
+
+    private async Task CommitInlineTimeEditAsync(string kind)
+    {
+        if (ViewModel is not { } vm || _inlineTimeEdit != kind) { _inlineApplyMouseDown = false; return; }
+        var input = InlineTimeControls(kind).Input;
+        var applied = kind switch
+        {
+            "Duration" => vm.TryApplyOutputDuration(input.Text),
+            "Start" => vm.TryApplyExportBoundary(true, input.Text),
+            "End" => vm.TryApplyExportBoundary(false, input.Text),
+            _ => MainViewModel.TryParseDurationSeconds(input.Text, out _, 0)
+        };
+        if (applied && InlineTrack(kind) is { } track)
+        {
+            MainViewModel.TryParseDurationSeconds(input.Text, out var seconds, 0);
+            CloseInlineTimeEdit(kind);
+            await vm.CommitTimelineTrackStartAsync(track, seconds);
+            return;
+        }
+        else if (!applied && InlineTrack(kind) is not null)
+        {
+            vm.ReportInteraction("시작 시각을 확인해 주세요.", "시작 시각은 0초 이상의 초 또는 mm:ss.fff 형식으로 입력하세요.");
+        }
+        _inlineApplyMouseDown = false;
+        if (applied) { CloseInlineTimeEdit(kind); }
+        else { input.Focus(); input.SelectAll(); }
+    }
+
+    private void CancelInlineTimeEdit()
+    {
+        if (_inlineTimeEdit is not { } kind) { _inlineApplyMouseDown = false; return; }
+        InlineTimeControls(kind).Input.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();
+        CloseInlineTimeEdit(kind);
+    }
+
+    private void CloseInlineTimeEdit(string kind)
+    {
+        var (label, editor, _) = InlineTimeControls(kind);
+        editor.Visibility = Visibility.Collapsed;
+        label.Visibility = Visibility.Visible;
+        ExportStartHost.Visibility = ExportEndHost.Visibility = ExportBoundarySeparator.Visibility = Visibility.Visible;
+        _inlineTimeEdit = null;
+        _inlineApplyMouseDown = false;
+    }
+
+    private (TextBlock Label, StackPanel Editor, TextBox Input) InlineTimeControls(string kind) => kind switch
+    {
+        "Duration" => (OutputDurationLabel, OutputDurationEditor, OutputDurationInput),
+        "Start" => (ExportStartLabel, ExportStartEditor, ExportStartInput),
+        "End" => (ExportEndLabel, ExportEndEditor, ExportEndInput),
+        "Video1Start" => (Video1StartLabel, Video1StartEditor, Video1StartInput),
+        "Video2Start" => (Video2StartLabel, Video2StartEditor, Video2StartInput),
+        "AudioStart" => (AudioStartLabel, AudioStartEditor, AudioStartInput),
+        _ => throw new ArgumentOutOfRangeException(nameof(kind))
+    };
+
+    private object? InlineTrack(string kind) => kind switch
+    {
+        "Video1Start" => ViewModel?.Video1,
+        "Video2Start" => ViewModel?.Video2,
+        "AudioStart" => ViewModel?.Audio,
+        _ => null
+    };
+
+    private void FitMode_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.SelectedVideo is { } video &&
+            sender is Button { Tag: string value } &&
+            Enum.TryParse<VideoFitMode>(value, out var fitMode))
+        {
+            video.AspectRatioLocked = false;
+            video.FitMode = fitMode;
+        }
+    }
+
     private void MediaVideo_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel is not null && sender is FrameworkElement { DataContext: VideoTrackViewModel track })
@@ -387,13 +527,11 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void SetPlaybackStart_Click(object sender, RoutedEventArgs e)
-    {
-        if (ViewModel is not null)
-        {
-            await ViewModel.SetPlaybackStartAsync();
-        }
-    }
+    private async void FullPlay_Click(object sender, RoutedEventArgs e) { if (ViewModel is { } vm) { await vm.StartFullPlaybackAsync(); } }
+    private async void FullPause_Click(object sender, RoutedEventArgs e) { if (ViewModel is { } vm) { await vm.PauseFullPlaybackAsync(); } }
+    private async void FullStop_Click(object sender, RoutedEventArgs e) { if (ViewModel is { } vm) { await vm.StopFullPlaybackAsync(); } }
+    private async void FullPreviousFrame_Click(object sender, RoutedEventArgs e) { if (ViewModel is { } vm) { await vm.StepFullFrameAsync(-1); } }
+    private async void FullNextFrame_Click(object sender, RoutedEventArgs e) { if (ViewModel is { } vm) { await vm.StepFullFrameAsync(1); } }
 
     private void Overlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -449,6 +587,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (IsInsideInlineEditor(e.OriginalSource as DependencyObject)) { e.Handled = true; return; }
+        if (e.ClickCount == 2)
+        {
+            if (BeginTimelineStartEdit(border.DataContext)) { e.Handled = true; }
+            return;
+        }
+
         _timelineDragTrack = border.DataContext;
         PreviewLogicalCanvas.Focus();
         ViewModel.BeginTimelineInteraction();
@@ -460,12 +605,51 @@ public partial class MainWindow : Window
         _timelineDragActive = true;
         if (_timelineDragTrack is VideoTrackViewModel video)
         {
-            ViewModel.SelectVideo(video);
+            SelectTimelineVideo(video);
         }
 
         border.RenderTransform = new TranslateTransform();
         border.CaptureMouse();
         e.Handled = true;
+    }
+
+    internal bool BeginTimelineStartEdit(object? track)
+    {
+        var kind = track switch
+        {
+            VideoTrackViewModel firstVideo when ReferenceEquals(firstVideo, ViewModel?.Video1) => "Video1Start",
+            VideoTrackViewModel => "Video2Start",
+            AudioTrackViewModel => "AudioStart",
+            _ => ""
+        };
+        if (track is VideoTrackViewModel video) { SelectTimelineVideo(video); }
+        return kind.Length > 0 && BeginInlineTimeEdit(kind);
+    }
+
+    private async void TimelineVideoLabel_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ViewModel is not { IsEditingEnabled: true } vm || sender is not FrameworkElement { DataContext: VideoTrackViewModel video }) { return; }
+        SelectTimelineVideo(video);
+        e.Handled = true;
+        if (video.HasMedia) { return; }
+
+        var dialog = new OpenFileDialog
+        {
+            Title = $"{video.Name}에 불러올 MP4 영상 선택",
+            Filter = "MP4 영상 (*.mp4)|*.mp4",
+            Multiselect = false,
+            CheckFileExists = true
+        };
+        if (dialog.ShowDialog(this) == true)
+        {
+            await vm.LoadVideoAsync(video, dialog.FileName);
+        }
+    }
+
+    private void SelectTimelineVideo(VideoTrackViewModel video)
+    {
+        ViewModel?.SelectVideo(video);
+        VideoSettingsTab.IsSelected = true;
     }
 
     private void TimelineClip_MouseMove(object sender, MouseEventArgs e)
@@ -726,6 +910,16 @@ public partial class MainWindow : Window
     private static bool IsNavigationKey(Key key) => key is
         Key.Left or Key.Right or Key.Up or Key.Down or Key.PageUp or Key.PageDown or Key.Home or Key.End;
 
+    private static bool IsInsideInlineEditor(DependencyObject? element)
+    {
+        while (element is not null)
+        {
+            if (element is TextBoxBase or Button) { return true; }
+            element = element is Visual ? VisualTreeHelper.GetParent(element) : LogicalTreeHelper.GetParent(element);
+        }
+        return false;
+    }
+
     private void CancelTimelineDrag()
     {
         if (!_timelineDragActive)
@@ -758,7 +952,7 @@ public partial class MainWindow : Window
 
     private static TextBlock? FindStartLabel(Border border)
     {
-        if (border.Child is not StackPanel panel)
+        if (border.Child is not Panel panel)
         {
             return null;
         }

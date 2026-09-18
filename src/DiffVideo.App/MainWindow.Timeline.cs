@@ -15,6 +15,7 @@ public partial class MainWindow
     private bool _updatingTimeline;
     private bool _barDragging;
     private double _barPointerX;
+    private PlaybackScope _barPlaybackScope;
 
     private void InitializeTimeline()
     {
@@ -28,9 +29,9 @@ public partial class MainWindow
         if (e.PropertyName == nameof(MainViewModel.IsPlaying) && ViewModel?.IsPlaying == true)
         {
             TimelineAutoFollow = true;
-            TimelineView.Reveal(ViewModel.PlayheadSeconds);
+            TimelineView.Reveal(ViewModel.ActivePlayheadSeconds);
         }
-        if (e.PropertyName is nameof(MainViewModel.PlayheadSeconds) or nameof(MainViewModel.PlaybackStartSeconds)
+        if (e.PropertyName is nameof(MainViewModel.PlayheadSeconds) or nameof(MainViewModel.FullPlayheadSeconds)
             or nameof(MainViewModel.OutputDurationSeconds) or nameof(MainViewModel.IsPlaying)
             or nameof(MainViewModel.ExportStartSeconds) or nameof(MainViewModel.ExportEndSeconds)) { UpdateTimeline(); }
     }
@@ -48,7 +49,7 @@ public partial class MainWindow
             TimelineLabelColumn.MaxWidth = Math.Max(180, TimelineBody.ActualWidth * 0.4);
             if (TimelineLabelColumn.Width.Value > TimelineLabelColumn.MaxWidth) { TimelineLabelColumn.Width = new(TimelineLabelColumn.MaxWidth); }
             TimelineView.Resize(TimelineViewportHost.ActualWidth, vm.OutputDurationSeconds);
-            if (vm.IsPlaying && TimelineAutoFollow) { TimelineView.Reveal(vm.PlayheadSeconds); }
+            if (vm.IsPlaying && TimelineAutoFollow) { TimelineView.Reveal(vm.ActivePlayheadSeconds); }
             TimelineContent.Width = TimelineView.ContentWidth;
             TimelineTranslation.X = -TimelineView.Offset;
             TimelineRuler.Configure(TimelineView.PixelsPerSecond, -TimelineView.Offset, TimelineView.Duration);
@@ -59,7 +60,8 @@ public partial class MainWindow
             TimelineScrollBar.Value = TimelineView.Offset;
             Canvas.SetLeft(PlayheadBar, TimelineView.Position(vm.PlayheadSeconds) - 6);
             PlayheadBar.Height = Math.Max(0, TimelineViewportHost.ActualHeight - 8);
-            Canvas.SetLeft(PlaybackStartFlag, TimelineView.Position(vm.PlaybackStartSeconds));
+            Canvas.SetLeft(FullPlayheadBar, TimelineView.Position(vm.FullPlayheadSeconds) - 6);
+            FullPlayheadBar.Height = PlayheadBar.Height;
             UpdateExportRangeMarkers();
             ZoomInButton.IsEnabled = TimelineView.PixelsPerSecond < Math.Max(240, TimelineView.Width / TimelineView.Duration) - 0.001;
             ZoomOutButton.IsEnabled = !TimelineView.IsFit;
@@ -71,7 +73,7 @@ public partial class MainWindow
     private void ZoomOut_Click(object sender, RoutedEventArgs e) => ZoomTimeline(0.5);
     internal void ZoomTimeline(double factor)
     {
-        TimelineView.Zoom(factor, ViewModel?.PlayheadSeconds ?? 0);
+        TimelineView.Zoom(factor, ViewModel?.ActivePlayheadSeconds ?? 0);
         UpdateTimeline();
     }
     private void FitTimeline_Click(object sender, RoutedEventArgs e) { TimelineView.Fit(); UpdateTimeline(); }
@@ -101,9 +103,10 @@ public partial class MainWindow
 
     private void PlayheadBar_DragStarted(object sender, DragStartedEventArgs e)
     {
-        if (ViewModel is not { CanNavigate: true } vm || _timelineDragActive || IsRoiDragging) { PlayheadBar.CancelDrag(); return; }
+        if (ViewModel is not { CanNavigate: true } vm || _timelineDragActive || IsRoiDragging || sender is not Thumb thumb) { (sender as Thumb)?.CancelDrag(); return; }
         _barDragging = _playheadDragging = true;
-        _barPointerX = TimelineView.Position(vm.PlayheadSeconds);
+        _barPlaybackScope = Equals(thumb.Tag, "Full") ? PlaybackScope.Full : PlaybackScope.Segment;
+        _barPointerX = TimelineView.Position(_barPlaybackScope == PlaybackScope.Full ? vm.FullPlayheadSeconds : vm.PlayheadSeconds);
         vm.BeginTimelineInteraction();
     }
     private void PlayheadBar_DragDelta(object sender, DragDeltaEventArgs e)
@@ -111,7 +114,8 @@ public partial class MainWindow
         if (!_barDragging || ViewModel is not { } vm) { return; }
         // Thumb moves with the playhead; use the stable viewport coordinate, not its local delta.
         _barPointerX = Mouse.GetPosition(TimelineViewportHost).X;
-        vm.PlayheadSeconds = TimelineView.TimeAt(_barPointerX);
+        if (_barPlaybackScope == PlaybackScope.Full) { vm.FullPlayheadSeconds = TimelineView.TimeAt(_barPointerX); }
+        else { vm.PlayheadSeconds = TimelineView.TimeAt(_barPointerX); }
         vm.RequestPlayheadPreview();
     }
     private async void PlayheadBar_DragCompleted(object sender, DragCompletedEventArgs e)

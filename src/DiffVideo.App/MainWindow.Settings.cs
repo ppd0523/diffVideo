@@ -32,7 +32,7 @@ public partial class MainWindow
         vm.OutputFps = settings.FramesPerSecond;
         vm.OutputDurationSeconds = Math.Clamp(
             double.IsFinite(settings.DurationSeconds) ? settings.DurationSeconds : 15,
-            0.1, TimeSpan.MaxValue.TotalSeconds);
+            0.01, TimeSpan.MaxValue.TotalSeconds);
         vm.Quality = Enum.IsDefined(settings.Quality) ? settings.Quality : OutputQuality.Balanced;
     }
 

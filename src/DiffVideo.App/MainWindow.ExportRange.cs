@@ -12,10 +12,6 @@ public partial class MainWindow
     private ExportRange _exportRangeBefore;
     private double _exportRangePointerOffset;
 
-    private void SetExportStart_Click(object sender, RoutedEventArgs e) => ViewModel?.SetExportBoundary(true, ViewModel.PlayheadSeconds);
-    private void SetExportEnd_Click(object sender, RoutedEventArgs e) => ViewModel?.SetExportBoundary(false, ViewModel.PlayheadSeconds);
-    private void ResetExportRange_Click(object sender, RoutedEventArgs e) => ViewModel?.ResetExportRange();
-
     private void UpdateExportRangeMarkers()
     {
         if (ViewModel is not { } vm) { return; }

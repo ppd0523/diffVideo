@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
@@ -8,6 +9,8 @@ using DiffVideo.Core;
 using DiffVideo.Infrastructure;
 
 namespace DiffVideo.App.ViewModels;
+
+public enum PlaybackScope { Segment, Full }
 
 public sealed partial class MainViewModel : ObservableObject, IDisposable
 {
@@ -28,7 +31,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private double _outputDurationSeconds = 15;
     private OutputQuality _quality = OutputQuality.Balanced;
     private double _playheadSeconds;
-    private double _playbackStartSeconds;
+    private double _fullPlayheadSeconds;
+    private PlaybackScope _activePlaybackScope = PlaybackScope.Segment;
+    private PlaybackScope? _playingScope;
     private ImageSource? _previewImage;
     private string _status = "MP4 두 개를 끌어 놓으세요.";
     private string _errorMessage = "";
@@ -134,10 +139,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         get => _outputDurationSeconds;
         set
         {
-            if (SetProperty(ref _outputDurationSeconds, Math.Max(0.1, value)))
+            if (SetProperty(ref _outputDurationSeconds, Math.Max(0.01, value)))
             {
                 ResnapTimelineForOutputChange();
                 OnPropertyChanged(nameof(OutputDurationText));
+                OnPropertyChanged(nameof(PlayheadText));
+                OnPropertyChanged(nameof(SegmentTimeText));
+                OnPropertyChanged(nameof(FullTimeText));
+                OnPropertyChanged(nameof(ExportEndText));
                 Status = "새 종료 시각에 맞춰 타임라인 위치를 제한했습니다.";
                 QueuePropertyPreview();
             }
@@ -145,6 +154,61 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     public string OutputDurationText => FormatTime(OutputDurationSeconds);
+    public bool TryApplyOutputDuration(string text)
+    {
+        if (IsPlaying) { return false; }
+        if (!TryParseDurationSeconds(text, out var seconds))
+        {
+            ErrorMessage = "전체 길이는 0.01초 이상의 초 또는 mm:ss.fff 형식으로 입력하세요.";
+            return false;
+        }
+
+        ErrorMessage = "";
+        OutputDurationSeconds = seconds;
+        Status = $"전체 길이를 {OutputDurationText}(으)로 설정했습니다.";
+        return true;
+    }
+
+    public bool TryApplyExportBoundary(bool start, string text)
+    {
+        if (!CanEditExportRange || !TryParseDurationSeconds(text, out var seconds, 0))
+        {
+            ErrorMessage = "구간 경계는 0초 이상의 초 또는 mm:ss.fff 형식으로 입력하세요.";
+            return false;
+        }
+
+        ErrorMessage = "";
+        SetExportBoundary(start, seconds);
+        Status = $"내보내기 {(start ? "시작" : "종료")} 경계를 {FormatTime(start ? ExportStartSeconds : ExportEndSeconds)}(으)로 설정했습니다.";
+        return true;
+    }
+
+    internal static bool TryParseDurationSeconds(string text, out double seconds, double minimum = 0.01)
+    {
+        text = text.Trim();
+        if (double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out seconds) ||
+            double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out seconds))
+        {
+            return double.IsFinite(seconds) && seconds >= minimum;
+        }
+
+        var parts = text.Split(':');
+        var secondsCulture = double.TryParse(parts[^1], NumberStyles.Float, CultureInfo.CurrentCulture, out var finalSeconds) ||
+            double.TryParse(parts[^1], NumberStyles.Float, CultureInfo.InvariantCulture, out finalSeconds);
+        var valid = parts.Length switch
+        {
+            2 => int.TryParse(parts[0], out var minutes) && minutes >= 0 && secondsCulture && finalSeconds is >= 0 and < 60,
+            3 => int.TryParse(parts[0], out var hours) && hours >= 0 && int.TryParse(parts[1], out var minutes) && minutes is >= 0 and < 60 && secondsCulture && finalSeconds is >= 0 and < 60,
+            _ => false
+        };
+        seconds = valid
+            ? parts.Length == 2
+                ? int.Parse(parts[0], CultureInfo.InvariantCulture) * 60d + finalSeconds
+                : int.Parse(parts[0], CultureInfo.InvariantCulture) * 3600d + int.Parse(parts[1], CultureInfo.InvariantCulture) * 60d + finalSeconds
+            : 0;
+        return valid && double.IsFinite(seconds) && seconds >= minimum;
+    }
+
     public OutputQuality Quality
     {
         get => _quality;
@@ -163,9 +227,21 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         set => SetPlayhead(value, transitionFromStopped: true);
     }
 
-    public string PlayheadText => $"{FormatTime(PlayheadSeconds)} / {FormatTime(OutputDurationSeconds)}";
-    public double PlaybackStartSeconds => _playbackStartSeconds;
-    public string PlaybackStartText => $"시작점 {FormatTime(PlaybackStartSeconds)}";
+    public double FullPlayheadSeconds
+    {
+        get => _fullPlayheadSeconds;
+        set => SetPlayhead(PlaybackScope.Full, value, transitionFromStopped: true);
+    }
+
+    public double ActivePlayheadSeconds => _activePlaybackScope == PlaybackScope.Segment ? PlayheadSeconds : FullPlayheadSeconds;
+    public string SegmentHeadText => FormatTime(PlayheadSeconds);
+    public string FullHeadText => FormatTime(FullPlayheadSeconds);
+    public string ExportStartText => FormatTime(ExportStartSeconds);
+    public string ExportEndText => FormatTime(ExportEndSeconds);
+    public string SegmentTimeText => $"{FormatTime(PlayheadSeconds)} / {FormatTime(ExportStartSeconds)} ~ {FormatTime(ExportEndSeconds)}";
+    public string FullTimeText => $"{FormatTime(FullPlayheadSeconds)} / {OutputDurationText}";
+    public string CurrentTimeText => FormatTime(ActivePlayheadSeconds);
+    public string PlayheadText => SegmentTimeText;
     public ImageSource? PreviewImage { get => _previewImage; private set => SetProperty(ref _previewImage, value); }
     public bool IsPreviewLoading { get => _isPreviewLoading; private set => SetProperty(ref _isPreviewLoading, value); }
     public string Status { get => _status; private set => SetProperty(ref _status, value); }
@@ -191,11 +267,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public PlaybackState CurrentPlaybackState => _playbackState;
     public bool IsPlaying => CurrentPlaybackState == PlaybackState.Playing;
     public bool IsEditingEnabled => !IsPlaying;
-    public bool CanPlay => HasComposition && !IsPlaying;
-    public bool CanPause => IsPlaying;
+    public bool CanPlay => CanPlaySegment;
+    public bool CanPause => CanPauseSegment;
     public bool CanStop => HasComposition;
     public bool CanNavigate => HasComposition && !IsPlaying;
-    public bool CanSetPlaybackStart => HasComposition && !IsPlaying;
+    public bool CanPlaySegment => HasComposition && !IsPlaying;
+    public bool CanPauseSegment => IsPlaying && _playingScope == PlaybackScope.Segment;
+    public bool CanUseSegmentControls => HasComposition && (!IsPlaying || _playingScope == PlaybackScope.Segment);
+    public bool CanPlayFull => HasComposition && !IsPlaying;
+    public bool CanPauseFull => IsPlaying && _playingScope == PlaybackScope.Full;
+    public bool CanUseFullControls => HasComposition && (!IsPlaying || _playingScope == PlaybackScope.Full);
     public bool CanStartExport => HasComposition && !IsExporting;
     public string PlaybackStateText => CurrentPlaybackState switch
     {
@@ -220,7 +301,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public string SelectedVideoTitle => $"{SelectedVideo.Name} 속성";
 
-    public async Task LoadFilesAsync(IEnumerable<string> paths)
+    public Task LoadFilesAsync(IEnumerable<string> paths) => LoadFilesCoreAsync(paths, null);
+
+    public Task LoadVideoAsync(VideoTrackViewModel target, string path) => LoadFilesCoreAsync([path], target);
+
+    private async Task LoadFilesCoreAsync(IEnumerable<string> paths, VideoTrackViewModel? requestedVideo)
     {
         if (IsPlaying)
         {
@@ -237,15 +322,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 var media = await _probeService.ProbeAsync(path);
                 if (media.Kind == MediaKind.Audio)
                 {
+                    if (requestedVideo is not null) { throw new InvalidOperationException("영상 트랙에는 MP4 영상만 불러올 수 있습니다."); }
                     Audio.SetMedia(media);
                     continue;
                 }
 
-                var target = !Video1.HasMedia ? Video1 : !Video2.HasMedia ? Video2 : SelectedVideo;
+                var target = requestedVideo ?? (!Video1.HasMedia ? Video1 : !Video2.HasMedia ? Video2 : SelectedVideo);
                 var halfWidth = CanvasWidth / 2;
-                var destination = ReferenceEquals(target, Video1)
-                    ? new PixelRect(0, 0, halfWidth, CanvasHeight)
-                    : new PixelRect(halfWidth, 0, CanvasWidth - halfWidth, CanvasHeight);
+                var destination = target.HasMedia
+                    ? new PixelRect(target.DestinationX, target.DestinationY, target.DestinationWidth, target.DestinationHeight)
+                    : ReferenceEquals(target, Video1)
+                        ? new PixelRect(0, 0, halfWidth, CanvasHeight)
+                        : new PixelRect(halfWidth, 0, CanvasWidth - halfWidth, CanvasHeight);
                 target.SetMedia(media, destination);
                 SelectVideo(target);
             }
@@ -265,12 +353,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 end = Math.Max(end, Audio.StartSeconds + Audio.DurationSeconds);
             }
 
-            OutputDurationSeconds = Math.Max(0.1, end);
+            OutputDurationSeconds = Math.Max(0.01, end);
             OutputFps = ChooseAutomaticFps(Math.Max(Video1.Media!.FramesPerSecond, Video2.Media!.FramesPerSecond));
             if (!hadComposition)
             {
-                SetPlaybackStart(0);
-                SetPlayhead(0, transitionFromStopped: false);
+                SetPlayhead(PlaybackScope.Segment, ExportStartSeconds, transitionFromStopped: false);
+                SetPlayhead(PlaybackScope.Full, 0, transitionFromStopped: false);
                 SetPlaybackState(PlaybackState.Stopped);
             }
 
@@ -425,7 +513,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _stillCancellation = new();
         try
         {
-            await _playerPreview.ShowStillAsync(BuildComposition(), PlayheadSeconds, _stillCancellation.Token);
+            await _playerPreview.ShowStillAsync(BuildComposition(), ActivePlayheadSeconds, _stillCancellation.Token);
             Status = "원본 정지 프레임 · 화면 배치 미리보기";
             ErrorMessage = "";
         }
@@ -482,7 +570,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    public Task StartPlaybackAsync()
+    public Task StartPlaybackAsync() => StartPlaybackAsync(PlaybackScope.Segment);
+    public Task StartFullPlaybackAsync() => StartPlaybackAsync(PlaybackScope.Full);
+
+    private Task StartPlaybackAsync(PlaybackScope scope)
     {
         if (IsPlaying)
         {
@@ -503,24 +594,32 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _previewCancellation?.Cancel();
         _previewCancellation?.Dispose();
         _previewCancellation = new();
-        if (IsAtPlaybackEnd())
+        _activePlaybackScope = scope;
+        var startSeconds = PlaybackStart(scope);
+        var endSeconds = PlaybackEnd(scope);
+        var currentSeconds = PlaybackHead(scope);
+        if (currentSeconds < startSeconds || IsAtPlaybackEnd(scope))
         {
-            SetPlayhead(PlaybackStartSeconds, transitionFromStopped: false);
+            SetPlayhead(scope, startSeconds, transitionFromStopped: false);
         }
 
-        var fromSeconds = PlayheadSeconds;
+        var fromSeconds = PlaybackHead(scope);
         var previewCancellation = _previewCancellation;
+        _playingScope = scope;
         SetPlaybackState(PlaybackState.Playing);
         IsPreviewLoading = true;
         Status = "개별 플레이어와 공통 오디오 믹스 재생 준비 중";
         ErrorMessage = "";
-        _ = RunPlaybackAsync(composition, fromSeconds, previewCancellation);
+        _ = RunPlaybackAsync(composition, fromSeconds, endSeconds, scope, previewCancellation);
         return Task.CompletedTask;
     }
 
-    public async Task PausePlaybackAsync()
+    public Task PausePlaybackAsync() => PausePlaybackAsync(PlaybackScope.Segment);
+    public Task PauseFullPlaybackAsync() => PausePlaybackAsync(PlaybackScope.Full);
+
+    private async Task PausePlaybackAsync(PlaybackScope scope)
     {
-        if (!IsPlaying)
+        if (!IsPlaying || _playingScope != scope)
         {
             return;
         }
@@ -528,46 +627,41 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _previewCancellation?.Cancel();
         _playerPreview.PauseImmediately();
         IsPreviewLoading = false;
+        _playingScope = null;
         SetPlaybackState(PlaybackState.Paused);
         Status = "일시정지";
         await RefreshStillPreviewAsync();
     }
 
-    public async Task StopPlaybackAsync()
+    public Task StopPlaybackAsync() => StopPlaybackAsync(PlaybackScope.Segment);
+    public Task StopFullPlaybackAsync() => StopPlaybackAsync(PlaybackScope.Full);
+
+    private async Task StopPlaybackAsync(PlaybackScope scope)
     {
+        if (IsPlaying && _playingScope != scope) { return; }
         _previewCancellation?.Cancel();
         _playerPreview.PauseImmediately();
         IsPreviewLoading = false;
-        SetPlayhead(PlaybackStartSeconds, transitionFromStopped: false);
+        _playingScope = null;
+        SetPlayhead(scope, PlaybackStart(scope), transitionFromStopped: false);
         SetPlaybackState(PlaybackState.Stopped);
-        Status = $"지정 시작점 {FormatTime(PlaybackStartSeconds)}에서 정지";
+        Status = $"{(scope == PlaybackScope.Segment ? "구간" : "전체")} 시작에서 정지";
         await RefreshStillPreviewAsync();
     }
 
-    public async Task SetPlaybackStartAsync()
-    {
-        if (!CanSetPlaybackStart)
-        {
-            return;
-        }
+    public Task StepFrameAsync(int direction) => StepFrameAsync(PlaybackScope.Segment, direction);
+    public Task StepFullFrameAsync(int direction) => StepFrameAsync(PlaybackScope.Full, direction);
 
-        SetPlaybackStart(PlaybackTimeline.SnapPlayhead(PlayheadSeconds, OutputFps, OutputDurationSeconds));
-        SetPlayhead(PlaybackStartSeconds, transitionFromStopped: false);
-        SetPlaybackState(PlaybackState.Stopped);
-        Status = $"재생 시작점을 {FormatTime(PlaybackStartSeconds)}로 지정했습니다.";
-        await RefreshStillPreviewAsync();
-    }
-
-    public async Task StepFrameAsync(int direction)
+    private async Task StepFrameAsync(PlaybackScope scope, int direction)
     {
         if (!CanNavigate || direction == 0)
         {
             return;
         }
 
-        var target = PlayheadSeconds + Math.Sign(direction) / (double)OutputFps;
-        SetPlayhead(target, transitionFromStopped: true);
-        Status = $"프레임 이동 · {FormatTime(PlayheadSeconds)}";
+        var target = PlaybackHead(scope) + Math.Sign(direction) / (double)OutputFps;
+        SetPlayhead(scope, target, transitionFromStopped: true);
+        Status = $"{(scope == PlaybackScope.Segment ? "구간" : "전체")} 프레임 이동 · {FormatTime(PlaybackHead(scope))}";
         await RefreshNavigationPreviewAfterIdleAsync();
     }
 
@@ -602,9 +696,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private async Task RunPlaybackAsync(Composition composition, double fromSeconds, CancellationTokenSource previewCancellation)
+    private async Task RunPlaybackAsync(Composition composition, double fromSeconds, double endSeconds, PlaybackScope scope, CancellationTokenSource previewCancellation)
     {
         var completedNaturally = false;
+        var reachedScopeEnd = false;
         var token = previewCancellation.Token;
         try
         {
@@ -613,7 +708,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 {
                     if (!token.IsCancellationRequested && ReferenceEquals(_previewCancellation, previewCancellation))
                     {
-                        SetPlayhead(time, transitionFromStopped: false);
+                        if (time >= endSeconds)
+                        {
+                            reachedScopeEnd = true;
+                            SetPlayhead(scope, endSeconds, transitionFromStopped: false);
+                            previewCancellation.Cancel();
+                        }
+                        else { SetPlayhead(scope, time, transitionFromStopped: false); }
                     }
                 },
                 loading =>
@@ -642,15 +743,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (!_disposed && ReferenceEquals(_previewCancellation, previewCancellation))
             {
                 IsPreviewLoading = false;
-                if (completedNaturally)
+                if (completedNaturally || reachedScopeEnd)
                 {
-                    SetPlayhead(PlaybackTimeline.LastFrameSeconds(OutputDurationSeconds, OutputFps), transitionFromStopped: false);
+                    SetPlayhead(scope, endSeconds, transitionFromStopped: false);
+                    _playingScope = null;
                     SetPlaybackState(PlaybackState.Paused);
-                    Status = "출력 종료 프레임에서 일시정지";
+                    Status = $"{(scope == PlaybackScope.Segment ? "구간" : "전체")} 종료 프레임에서 일시정지";
                     _ = RefreshStillPreviewAsync();
                 }
                 else if (!token.IsCancellationRequested)
                 {
+                    _playingScope = null;
                     SetPlaybackState(PlaybackState.Paused);
                 }
             }
@@ -749,7 +852,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         try
         {
             var composition = BuildCompositionWithTemporaryStart(track, pendingStart);
-            await _playerPreview.ShowStillAsync(composition, PlayheadSeconds, cancellation.Token,
+            await _playerPreview.ShowStillAsync(composition, ActivePlayheadSeconds, cancellation.Token,
                 () => revision == _interactivePreviewRevision);
             if (revision == _interactivePreviewRevision && !cancellation.IsCancellationRequested && !IsPlaying)
             {
@@ -883,15 +986,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _suppressTrackPreview = false;
         }
 
-        SetPlaybackStart(PlaybackTimeline.SnapPlayhead(PlaybackStartSeconds, OutputFps, OutputDurationSeconds));
-        if (CurrentPlaybackState == PlaybackState.Stopped)
-        {
-            SetPlayhead(PlaybackStartSeconds, transitionFromStopped: false);
-        }
-        else
-        {
-            SetPlayhead(PlayheadSeconds, transitionFromStopped: false);
-        }
+        SetPlayhead(PlaybackScope.Segment, PlayheadSeconds, transitionFromStopped: false);
+        SetPlayhead(PlaybackScope.Full, FullPlayheadSeconds, transitionFromStopped: false);
     }
 
     private void SetPlaybackState(PlaybackState state)
@@ -915,39 +1011,58 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CanPause));
         OnPropertyChanged(nameof(CanStop));
         OnPropertyChanged(nameof(CanNavigate));
-        OnPropertyChanged(nameof(CanSetPlaybackStart));
+        OnPropertyChanged(nameof(CanPlaySegment));
+        OnPropertyChanged(nameof(CanPauseSegment));
+        OnPropertyChanged(nameof(CanUseSegmentControls));
+        OnPropertyChanged(nameof(CanPlayFull));
+        OnPropertyChanged(nameof(CanPauseFull));
+        OnPropertyChanged(nameof(CanUseFullControls));
         OnPropertyChanged(nameof(CanEditExportRange));
         OnPropertyChanged(nameof(CanStartExport));
     }
 
-    private void SetPlaybackStart(double seconds)
+    private double PlaybackHead(PlaybackScope scope) => scope == PlaybackScope.Segment ? PlayheadSeconds : FullPlayheadSeconds;
+    private double PlaybackStart(PlaybackScope scope) => scope == PlaybackScope.Segment ? ExportStartSeconds : 0;
+    private double PlaybackEnd(PlaybackScope scope)
     {
-        var snapped = PlaybackTimeline.SnapPlayhead(seconds, OutputFps, OutputDurationSeconds);
-        if (SetProperty(ref _playbackStartSeconds, snapped, nameof(PlaybackStartSeconds)))
-        {
-            OnPropertyChanged(nameof(PlaybackStartText));
-        }
+        var boundary = scope == PlaybackScope.Segment ? ExportEndSeconds : OutputDurationSeconds;
+        return Math.Max(PlaybackStart(scope), PlaybackTimeline.LastFrameSeconds(boundary, OutputFps));
     }
 
-    private void SetPlayhead(double seconds, bool transitionFromStopped)
+    private void SetPlayhead(double seconds, bool transitionFromStopped) =>
+        SetPlayhead(PlaybackScope.Segment, seconds, transitionFromStopped);
+
+    private void SetPlayhead(PlaybackScope scope, double seconds, bool transitionFromStopped)
     {
-        var snapped = PlaybackTimeline.SnapPlayhead(seconds, OutputFps, OutputDurationSeconds);
-        if (!SetProperty(ref _playheadSeconds, snapped, nameof(PlayheadSeconds)))
+        var start = PlaybackStart(scope);
+        var end = PlaybackEnd(scope);
+        var snapped = Math.Clamp(PlaybackTimeline.SnapPlayhead(seconds, OutputFps, OutputDurationSeconds), start, end);
+        _activePlaybackScope = scope;
+        var changed = scope == PlaybackScope.Segment
+            ? SetProperty(ref _playheadSeconds, snapped, nameof(PlayheadSeconds))
+            : SetProperty(ref _fullPlayheadSeconds, snapped, nameof(FullPlayheadSeconds));
+        if (!changed)
         {
             return;
         }
 
         OnPropertyChanged(nameof(PlayheadText));
+        OnPropertyChanged(nameof(SegmentTimeText));
+        OnPropertyChanged(nameof(FullTimeText));
+        OnPropertyChanged(nameof(SegmentHeadText));
+        OnPropertyChanged(nameof(FullHeadText));
+        OnPropertyChanged(nameof(CurrentTimeText));
+        OnPropertyChanged(nameof(ActivePlayheadSeconds));
         if (transitionFromStopped && CurrentPlaybackState == PlaybackState.Stopped)
         {
             SetPlaybackState(PlaybackState.Paused);
         }
     }
 
-    private bool IsAtPlaybackEnd()
+    private bool IsAtPlaybackEnd(PlaybackScope scope)
     {
-        var lastFrame = PlaybackTimeline.LastFrameSeconds(OutputDurationSeconds, OutputFps);
-        return PlayheadSeconds >= lastFrame - 0.5 / OutputFps;
+        var lastFrame = PlaybackEnd(scope);
+        return PlaybackHead(scope) >= lastFrame - 0.5 / OutputFps;
     }
 
     private static void SetTrackStart(object? track, double seconds)

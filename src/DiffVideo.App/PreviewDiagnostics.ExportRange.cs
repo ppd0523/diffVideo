@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using DiffVideo.Core;
 
 namespace DiffVideo.App;
@@ -18,11 +19,18 @@ internal static partial class PreviewDiagnostics
         vm.OutputDurationSeconds = whole + 1;
         Assert(vm.ExportEndSeconds == whole + 1, "Default end follows timeline duration");
         vm.OutputDurationSeconds = whole;
-        vm.PlayheadSeconds = 5;
-        window.SetExportStartButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
-        vm.PlayheadSeconds = 12;
-        window.SetExportEndButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
-        Assert(vm.ExportStartSeconds == 5 && vm.ExportEndSeconds == 12 && vm.ExportDurationSeconds == 7, "Current position buttons select 5 to 12");
+        window.ExportStartLabel.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+        Assert(window.ExportStartInput.Width == 100 && window.ExportStartEditor.Margin.Left == -4 && window.ExportEndHost.Visibility == Visibility.Collapsed,
+            "Boundary editor expands left without shifting its number and hides the opposite label");
+        window.ExportStartInput.Text = "5";
+        window.ApplyExportStartButton.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.PreviewMouseDownEvent });
+        window.ApplyExportStartButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        window.PlayButton.Focus();
+        window.ExportEndLabel.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+        window.ExportEndInput.Text = "12";
+        window.ExportEndInput.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window.ExportEndInput), Environment.TickCount, Key.Enter) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+        Assert(vm.ExportStartSeconds == 5 && vm.ExportEndSeconds == 12 && vm.ExportDurationSeconds == 7,
+            $"Inline editors select 5 to 12: {vm.ExportStartSeconds} to {vm.ExportEndSeconds}");
         var snapshot = vm.BuildExportComposition();
         Assert(snapshot.Output.ExportStart.TotalSeconds == 5 && snapshot.Output.ExportDuration.TotalSeconds == 7, "Export snapshot freezes selected range");
         Assert(vm.BuildComposition().Output.ExportDuration.TotalSeconds == whole, "Playback composition remains whole");
@@ -50,7 +58,7 @@ internal static partial class PreviewDiagnostics
         SaveScreenshot(window, Path.ChangeExtension(report, "png"));
         window.Width = window.MinWidth; window.Height = window.MinHeight;
         window.UpdateLayout(); window.UpdateTimeline();
-        Assert(window.ExportRangeToolbar.ActualHeight > 0 && window.TimelineViewportHost.ActualHeight >= 100, "Range controls and tracks fit minimum window");
+        Assert(window.TransportBar.ActualHeight > 0 && window.TimelineViewportHost.ActualHeight >= 100, "Range controls and tracks fit minimum window");
         SaveScreenshot(window, Path.ChangeExtension(report, "minimum.png"));
         vm.Video1.StartSeconds = 1;
         vm.Video2.StartSeconds = 3;
@@ -84,7 +92,7 @@ internal static partial class PreviewDiagnostics
         window.CancelExportRangeDrag();
         await File.WriteAllTextAsync(report, JsonSerializer.Serialize(new { Success = true, Checks = new[]
         {
-            "Whole-range default and automatic end tracking", "Current-position buttons and immutable export snapshot",
+            "Whole-range default and automatic end tracking", "Inline boundaries and immutable export snapshot",
             "Confirmation boundaries and saved duration", "Boundary handles with zoom/scroll, commit, cancel and crossing clamp",
             "Minimum window layout", "Overlap intersection, disjoint preservation and whole-video duration extension", "Playing/paused editing gates"
         } }, JsonOptions));

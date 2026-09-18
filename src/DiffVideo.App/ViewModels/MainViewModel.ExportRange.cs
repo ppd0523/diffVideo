@@ -66,6 +66,7 @@ public sealed partial class MainViewModel
     {
         _exportStartSeconds = range.Start;
         _exportEndSeconds = range.End >= OutputDurationSeconds ? null : range.End;
+        SetPlayhead(PlaybackScope.Segment, PlayheadSeconds, transitionFromStopped: false);
         NotifyExportRange();
     }
 
@@ -78,6 +79,9 @@ public sealed partial class MainViewModel
         OnPropertyChanged(nameof(ExportEndSeconds));
         OnPropertyChanged(nameof(ExportDurationSeconds));
         OnPropertyChanged(nameof(ExportRangeText));
+        OnPropertyChanged(nameof(SegmentTimeText));
+        OnPropertyChanged(nameof(ExportStartText));
+        OnPropertyChanged(nameof(ExportEndText));
     }
 
     public Composition BuildExportComposition() => WithExportRange(BuildComposition());

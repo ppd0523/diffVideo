@@ -123,14 +123,13 @@ public sealed class VideoTrackViewModel : ObservableObject
     public void SetMedia(MediaInfo media, PixelRect destination)
     {
         Media = media;
+        StartSeconds = 0;
         SetRoi(PixelRect.FullFrame(media));
-        DestinationX = destination.X;
-        DestinationY = destination.Y;
-        _syncingSize = true;
-        DestinationWidth = destination.Width;
-        DestinationHeight = destination.Height;
-        _syncingSize = false;
+        SetDestination(destination);
+        FitMode = VideoFitMode.Fit;
+        AspectRatioLocked = true;
         IncludeAudio = media.HasAudio;
+        VolumePercent = 100;
     }
 
     public void SetRoi(PixelRect roi)
