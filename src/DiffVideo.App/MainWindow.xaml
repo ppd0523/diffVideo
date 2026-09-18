@@ -311,7 +311,7 @@
 <Grid x:Name="IntegratedTimeline" ClipToBounds="True" SizeChanged="Timeline_SizeChanged">
 <Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="40"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <Grid x:Name="FullTransportBar" Grid.Row="0" IsEnabled="{Binding CanUseFullControls}" Background="{StaticResource SurfaceBrush}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <StackPanel x:Name="FullInfoGroup" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" IsEnabled="{Binding IsEditingEnabled}">
                         <TextBlock Text="전체" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
                         <TextBlock x:Name="FullPlaybackTimeDisplay" Text="{Binding FullHeadText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -338,7 +338,7 @@
                     </StackPanel>
                 </Grid>
                 <Grid x:Name="TransportBar" Grid.Row="1" Background="#18CA8A04">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <StackPanel x:Name="SegmentInfoGroup" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" IsEnabled="{Binding IsEditingEnabled}">
                         <TextBlock Text="구간" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
                         <TextBlock x:Name="PlaybackTimeDisplay" Text="{Binding SegmentHeadText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
