@@ -6,6 +6,7 @@ namespace DiffVideo.App.Controls;
 
 public sealed class CoordinateTip : FrameworkElement
 {
+    private static readonly FontFamily D2CodingFont = new(new Uri("pack://application:,,,/"), "./DiffVideo;component/Assets/Fonts/#D2Coding");
     private Point _point;
     public string? Coordinates { get; private set; }
     public CoordinateTip() { IsHitTestVisible = false; }
@@ -18,7 +19,7 @@ public sealed class CoordinateTip : FrameworkElement
     {
         if (Coordinates is null) { return; }
         var text = new FormattedText(Coordinates, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-            new Typeface(new FontFamily("Inter, Segoe UI"), FontStyles.Normal, FontWeights.Medium, FontStretches.Normal),
+            new Typeface(D2CodingFont, FontStyles.Normal, FontWeights.Medium, FontStretches.Normal),
             13, new SolidColorBrush(Color.FromRgb(28, 25, 23)), VisualTreeHelper.GetDpi(this).PixelsPerDip);
         var width = text.Width + 28; var height = text.Height + 16;
         var x = _point.X + 16; var y = _point.Y + 18;

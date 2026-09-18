@@ -46,3 +46,14 @@ The complete license is included in `licenses/MaterialIcons-LICENSE.txt`.
   the containing control. The original 24×24 viewport is retained.
 
 No icon font installation or network connection is required at runtime.
+
+## D2Coding
+
+The application embeds the D2Coding regular and bold TrueType fonts for consistent
+Korean and Latin text rendering across Windows installations. D2Coding is
+copyright NAVER Corporation and is distributed under the SIL Open Font License,
+Version 1.1. The complete license is included in
+`licenses/D2Coding-LICENSE.txt`.
+
+- Version: `1.3.3-20260725`
+- Source: https://github.com/naver/d2codingfont

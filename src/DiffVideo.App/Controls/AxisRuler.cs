@@ -7,6 +7,7 @@ namespace DiffVideo.App.Controls;
 
 public sealed class AxisRuler : FrameworkElement
 {
+    private static readonly FontFamily D2CodingFont = new(new Uri("pack://application:,,,/"), "./DiffVideo;component/Assets/Fonts/#D2Coding");
     public bool Vertical { get; set; }
     public bool SourcePixels { get; set; }
     public double Scale { get; private set; } = 1;
@@ -42,7 +43,7 @@ public sealed class AxisRuler : FrameworkElement
             }
             if (!labeled) { continue; }
             var text = new FormattedText(value.ToString("0", CultureInfo.InvariantCulture) + (SourcePixels ? "" : "s"), CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight, new Typeface(new FontFamily("Inter, Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal),
+                FlowDirection.LeftToRight, new Typeface(D2CodingFont, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal),
                 11, new SolidColorBrush(Color.FromRgb(87, 83, 78)), VisualTreeHelper.GetDpi(this).PixelsPerDip);
             var point = Vertical
                 ? new Point(Math.Max(0, ActualWidth - text.Width - 10), Math.Clamp(position - text.Height / 2, 0, Math.Max(0, ActualHeight - text.Height)))
