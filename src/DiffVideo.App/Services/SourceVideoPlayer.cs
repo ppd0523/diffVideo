@@ -7,6 +7,9 @@ using DiffVideo.Infrastructure;
 
 namespace DiffVideo.App.Services;
 
+/// <summary>How far a player trails the shared clock, and whether it has nothing to show yet.</summary>
+public readonly record struct PresentResult(double LagSeconds, bool IsBuffering);
+
 /// <summary>One muted video player. Its mutable Drawing is transformed/clipped by the canvas.</summary>
 public sealed class SourceVideoPlayer(FfmpegPaths paths, bool forceDecoder = false) : IDisposable
 {
@@ -126,7 +129,11 @@ public sealed class SourceVideoPlayer(FfmpegPaths paths, bool forceDecoder = fal
         }
     }
 
-    public bool Present(VideoTrack track, double timelineSeconds)
+    /// <summary>
+    /// Advances this player to the shared clock. Lag is reported, never acted on here; the only
+    /// correction applied is re-seeking a self-clocked native player that drifted past its budget.
+    /// </summary>
+    public PresentResult Present(VideoTrack track, double timelineSeconds, double reseekSeconds)
     {
         var position = PreviewTiming.Map(timelineSeconds, track);
         if (!position.IsActive)
@@ -136,7 +143,7 @@ public sealed class SourceVideoPlayer(FfmpegPaths paths, bool forceDecoder = fal
             {
                 ShowBitmap(still);
             }
-            return true;
+            return default;
         }
 
         if (UsesNativePlayer)
@@ -148,15 +155,22 @@ public sealed class SourceVideoPlayer(FfmpegPaths paths, bool forceDecoder = fal
                 Drawing.Children.Add(_nativeDrawing!);
                 _native.Play();
                 _active = true;
-                return true;
+                return default;
             }
 
-            return !_native!.IsBuffering && Math.Abs(_native.Position.TotalSeconds - position.Seconds) <= 0.05;
+            var drift = Math.Abs(_native!.Position.TotalSeconds - position.Seconds);
+            if (drift > reseekSeconds)
+            {
+                // A native player owns its clock and cannot be told to hurry; seeking is the only lever.
+                _native.Position = TimeSpan.FromSeconds(position.Seconds);
+            }
+
+            return new(drift, _native.IsBuffering);
         }
 
         if (_decoder is null)
         {
-            return false;
+            return new(0, true);
         }
 
         _active = true;
@@ -175,7 +189,8 @@ public sealed class SourceVideoPlayer(FfmpegPaths paths, bool forceDecoder = fal
             _nextFrame = null;
         }
 
-        return position.Seconds - _displayedTime <= 0.05;
+        // The drain above already skipped whatever it could; what remains is honest lag.
+        return new(Math.Max(0, position.Seconds - _displayedTime), false);
     }
 
     public void Pause()

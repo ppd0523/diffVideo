@@ -4,6 +4,16 @@ using System.Windows.Data;
 
 namespace DiffVideo.App.Converters;
 
+/// <summary>Visible when the bound flag is false; the counterpart of BooleanToVisibilityConverter.</summary>
+public sealed class InverseBooleanToVisibilityConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is true ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is Visibility.Collapsed or Visibility.Hidden;
+}
+
 public sealed class ClipHeightConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => Math.Max(26, (double)value - 4);

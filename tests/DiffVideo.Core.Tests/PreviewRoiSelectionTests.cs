@@ -4,7 +4,7 @@ namespace DiffVideo.Core.Tests;
 
 public sealed class PreviewRoiSelectionTests
 {
-    private static VideoTrack Track(VideoFitMode fit = VideoFitMode.Fit) => TestComposition.Create().Video1 with
+    private static VideoTrack Track(VideoFitMode fit = VideoFitMode.Fit) => TestComposition.Create().Videos[0] with
     {
         Roi = new(100, 50, 400, 200), Destination = new(10, 20, 200, 200), FitMode = fit
     };

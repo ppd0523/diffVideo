@@ -35,9 +35,9 @@ internal static partial class PreviewDiagnostics
         window.UpdateLayout();
         Assert(Math.Abs(window.TimelineView.Position(30) - anchor) < 1, "Zoom anchors current playhead");
         Assert(vm.BuildComposition() == before && vm.PlayheadSeconds == 30, "Zoom never changes composition/time");
-        Assert(window.Video1FileName.Text == Path.GetFileName(files[0]) && Equals(window.Video1FileName.ToolTip, window.Video1FileName.Text), "Fixed filename with full-name tooltip");
-        Assert(window.TimelineVideo1.ActualWidth > window.TimelineViewportHost.ActualWidth, "Clips use full zoomed timeline width");
-        Assert(window.PlayheadBar.ActualHeight > window.TimelineVideo1.ActualHeight * 3, "Playhead spans all tracks");
+        Assert(window.TrackFileName(0)!.Text == Path.GetFileName(files[0]) && Equals(window.TrackFileName(0)!.ToolTip, window.TrackFileName(0)!.Text), "Fixed filename with full-name tooltip");
+        Assert(window.TrackClipCanvas(0)!.ActualWidth > window.TimelineViewportHost.ActualWidth, "Clips use full zoomed timeline width");
+        Assert(window.PlayheadBar.ActualHeight > window.TrackClipCanvas(0)!.ActualHeight * 3, "Playhead spans all tracks");
         checks.Add("Zoom button / playhead anchor / fixed filenames / full-height playhead");
         var scale = window.TimelineView.PixelsPerSecond;
         window.ResizeTimelineLabels(5000); window.UpdateLayout();
@@ -47,7 +47,7 @@ internal static partial class PreviewDiagnostics
         Assert(window.TimelineLabelColumn.ActualWidth == 180, "Label minimum width");
         window.ResizeTimelineHeight(5000); window.UpdateLayout();
         Assert(window.TimelineRow.ActualHeight <= window.ActualHeight / 2 + 1, $"Height maximum: {window.TimelineRow.ActualHeight}/{window.ActualHeight}");
-        Assert(Math.Abs(window.TimelineVideo1.ActualHeight - window.TimelineAudio.ActualHeight) < 1, "Rows share added height equally");
+        Assert(Math.Abs(window.TrackClipCanvas(0)!.ActualHeight - window.TrackClipCanvas(window.AudioRowIndex)!.ActualHeight) < 1, "Rows share added height equally");
         SaveScreenshot(window, Path.ChangeExtension(report, ".expanded.png"));
         window.ResizeTimelineHeight(1); window.ResizeTimelineLabels(204); window.UpdateLayout();
         Assert(Math.Abs(window.TimelineRow.ActualHeight - window.TimelineRow.MinHeight) < 1, "Height minimum");
@@ -62,8 +62,8 @@ internal static partial class PreviewDiagnostics
         Assert(window.TimelineView.IsFit && window.TimelineView.Offset == 0, "Fit button restores full view");
         checks.Add("Panel resize bounds / equal rows / zoom preservation / manual scroll and follow");
 
-        var png = await vm.GetSourceFramePngAsync(vm.Video1);
-        var media = vm.Video1.Media!;
+        var png = await vm.GetSourceFramePngAsync(vm.Videos[0]);
+        var media = vm.Videos[0].Media!;
         var editor = new RoiEditorWindow(png, media.DisplayWidth, media.DisplayHeight, PixelRect.FullFrame(media)) { Owner = window };
         editor.Show(); editor.UpdateLayout();
         var center = new Point(editor.ImageHost.ActualWidth / 2, editor.ImageHost.ActualHeight / 2);
@@ -77,16 +77,16 @@ internal static partial class PreviewDiagnostics
         checks.Add("100 px source rulers / source coordinate tooltip / outside-image hiding");
 
         var snapshot = vm.BuildComposition();
-        snapshot = snapshot with { Video1 = snapshot.Video1 with { FileNameLabel = new(false, new(18, 24, LabelAnchor.BottomRight), new(20)) } };
+        snapshot = snapshot.WithVideo(0, snapshot.Videos[0] with { FileNameLabel = new(false, new(18, 24, LabelAnchor.BottomRight), new(20)) });
         var outputDirectory = Path.GetDirectoryName(report)!;
         var confirmation = new ExportConfirmationWindow(snapshot) { Owner = window };
         confirmation.Show(); confirmation.UpdateLayout();
-        Assert(!confirmation.ConfirmedComposition.Video1.FileNameLabel!.Enabled, "Filename checkbox defaults off");
-        vm.Video1.StartSeconds = 5;
-        Assert(confirmation.ConfirmedComposition.Video1.Start == snapshot.Video1.Start, "Confirmation uses immutable captured snapshot");
+        Assert(!confirmation.ConfirmedComposition.Videos[0].FileNameLabel!.Enabled, "Filename checkbox defaults off");
+        vm.Videos[0].StartSeconds = 5;
+        Assert(confirmation.ConfirmedComposition.Videos[0].Start == snapshot.Videos[0].Start, "Confirmation uses immutable captured snapshot");
         confirmation.IncludeFileNamesCheckBox.IsChecked = true;
-        Assert(confirmation.ConfirmedComposition.Video1.FileNameLabel!.Enabled && confirmation.ConfirmedComposition.Video2.FileNameLabel!.Enabled, "Checkbox enables both video labels");
-        Assert(confirmation.ConfirmedComposition.Video1.FileNameLabel!.Position == snapshot.Video1.FileNameLabel!.Position && confirmation.ConfirmedComposition.Video1.FileNameLabel.Style == snapshot.Video1.FileNameLabel.Style, "Checkbox preserves future per-video label position and style");
+        Assert(confirmation.ConfirmedComposition.Videos[0].FileNameLabel!.Enabled && confirmation.ConfirmedComposition.Videos[1].FileNameLabel!.Enabled, "Checkbox enables both video labels");
+        Assert(confirmation.ConfirmedComposition.Videos[0].FileNameLabel!.Position == snapshot.Videos[0].FileNameLabel!.Position && confirmation.ConfirmedComposition.Videos[0].FileNameLabel!.Style == snapshot.Videos[0].FileNameLabel!.Style, "Checkbox preserves future per-video label position and style");
         SaveScreenshot(confirmation, Path.ChangeExtension(report, ".confirmation.png"));
         confirmation.Close();
         Assert(!File.Exists(Path.Combine(outputDirectory, "not-confirmed.mp4")), "Unconfirmed dialog creates no output");
@@ -108,13 +108,14 @@ internal static partial class PreviewDiagnostics
             var probe = new MediaProbeService(paths);
             var one = await probe.ProbeAsync(source1); var two = await probe.ProbeAsync(source2);
             var snapshot = new Composition(
-                new(one, TimeSpan.FromSeconds(0.5), PixelRect.FullFrame(one), new(0, 0, 320, 180), VideoFitMode.Fit, false, 0, false, 1),
-                new(two, TimeSpan.FromSeconds(1), PixelRect.FullFrame(two), new(320, 0, 320, 180), VideoFitMode.Fit, false, 1, false, 1),
-                null, new(640, 180, 30, TimeSpan.FromSeconds(3), OutputQuality.High));
+                [
+                    new(one, TimeSpan.FromSeconds(0.5), PixelRect.FullFrame(one), new(0, 0, 320, 180), VideoFitMode.Fit, false, 0, false, 1),
+                    new(two, TimeSpan.FromSeconds(1), PixelRect.FullFrame(two), new(320, 0, 320, 180), VideoFitMode.Fit, false, 1, false, 1)
+                ],
+                [], new(640, 180, 30, TimeSpan.FromSeconds(3), OutputQuality.High));
             var labeled = snapshot with
             {
-                Video1 = snapshot.Video1 with { FileNameLabel = FileNameLabel.Default(true) },
-                Video2 = snapshot.Video2 with { FileNameLabel = FileNameLabel.Default(true) }
+                Videos = [.. snapshot.Videos.Select(track => track with { FileNameLabel = FileNameLabel.Default(true) })]
             };
             var plainPath = Path.Combine(outputDirectory, "labels-off.mp4");
             var labeledPath = Path.Combine(outputDirectory, "labels-on.mp4");
@@ -153,7 +154,9 @@ internal static partial class PreviewDiagnostics
             }
             await DiagnosticFfmpegAsync(paths.Ffmpeg, ["-y", "-ss", "0.1", "-i", labeledPath, "-frames:v", "1", Path.Combine(outputDirectory, "labels-on.png")]);
             checks.Add("Actual Unicode/long-filename H.264 export / 2 lines / both held endpoints / temp cleanup");
-            var overlapped = labeled with { Video2 = labeled.Video2 with { Destination = labeled.Video1.Destination }, Output = labeled.Output with { Duration = TimeSpan.FromSeconds(0.5) } };
+            var overlapped = labeled
+                .WithVideo(1, labeled.Videos[1] with { Destination = labeled.Videos[0].Destination })
+                with { Output = labeled.Output with { Duration = TimeSpan.FromSeconds(0.5) } };
             var overlapPath = Path.Combine(outputDirectory, "labels-overlap.mp4");
             using (var labels = ExportLabelRenderer.Create(overlapped))
             {
@@ -179,7 +182,7 @@ internal static partial class PreviewDiagnostics
             checks.Add("Actual overlapping layer order / cancellation preserves previous output and unrelated partial files");
             // Exercise the same immutable-snapshot overload used by the confirmation button.
             var task = window.ViewModel!.ExportAsync(labeled, Path.Combine(outputDirectory, "labels-snapshot.mp4"), overwrite: true);
-            window.ViewModel.Video1.StartSeconds = 7;
+            window.ViewModel.Videos[0].StartSeconds = 7;
             Assert(window.ViewModel.IsEditingEnabled, "Confirmed export does not lock editing");
             await task;
             Assert(string.IsNullOrEmpty(window.ViewModel.ErrorMessage), "Snapshot export succeeds");

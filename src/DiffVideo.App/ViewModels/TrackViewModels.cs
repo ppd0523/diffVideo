@@ -2,7 +2,17 @@ using DiffVideo.Core;
 
 namespace DiffVideo.App.ViewModels;
 
-public sealed class VideoTrackViewModel : ObservableObject
+/// <summary>What a timeline row needs, whatever kind of media it holds.</summary>
+public interface ITimelineTrack
+{
+    string Name { get; }
+    bool HasMedia { get; }
+    double StartSeconds { get; }
+    bool IsEditingStart { get; set; }
+    string StartEditText { get; set; }
+}
+
+public sealed class VideoTrackViewModel : ObservableObject, ITimelineTrack
 {
     private MediaInfo? _media;
     private double _startSeconds;
@@ -18,17 +28,40 @@ public sealed class VideoTrackViewModel : ObservableObject
     private bool _aspectRatioLocked = true;
     private bool _includeAudio = true;
     private double _volumePercent = 100;
-    private int _zIndex;
     private bool _isSelected;
     private bool _syncingSize;
+    private string _name;
+    private bool _isPlacementCustomized;
+    private bool _isLagging;
+    private int _zIndex;
+    private bool _isEditingStart;
+    private string _startEditText = "";
 
-    public VideoTrackViewModel(string name, int zIndex)
+    public VideoTrackViewModel(string name)
     {
-        Name = name;
-        _zIndex = zIndex;
+        _name = name;
     }
 
-    public string Name { get; }
+    /// <summary>Renumbered whenever tracks are added, removed or reordered.</summary>
+    public string Name { get => _name; set => SetProperty(ref _name, value); }
+
+    /// <summary>
+    /// Set once the user positions this track by hand. Automatic grid layout then skips it,
+    /// so adding a track never destroys placement work.
+    /// </summary>
+    public bool IsPlacementCustomized { get => _isPlacementCustomized; set => SetProperty(ref _isPlacementCustomized, value); }
+
+    /// <summary>True while this track trails the shared playback clock; drives its buffering badge.</summary>
+    public bool IsLagging { get => _isLagging; set => SetProperty(ref _isLagging, value); }
+
+    /// <summary>Derived from row order by the owner; never edited directly.</summary>
+    public int ZIndex { get => _zIndex; set => SetProperty(ref _zIndex, value); }
+
+    /// <summary>True while this track shows its inline start-time editor instead of its label.</summary>
+    public bool IsEditingStart { get => _isEditingStart; set => SetProperty(ref _isEditingStart, value); }
+
+    /// <summary>Text held by the inline editor; only committed values reach StartSeconds.</summary>
+    public string StartEditText { get => _startEditText; set => SetProperty(ref _startEditText, value); }
 
     public MediaInfo? Media
     {
@@ -63,10 +96,18 @@ public sealed class VideoTrackViewModel : ObservableObject
     public int RoiY { get => _roiY; set => SetRoi(new(RoiX, value, RoiWidth, RoiHeight)); }
     public int RoiWidth { get => _roiWidth; set => SetRoi(new(RoiX, RoiY, value, RoiHeight)); }
     public int RoiHeight { get => _roiHeight; set => SetRoi(new(RoiX, RoiY, RoiWidth, value)); }
-    public int DestinationX { get => _destinationX; set => SetProperty(ref _destinationX, value); }
-    public int DestinationY { get => _destinationY; set => SetProperty(ref _destinationY, value); }
+    public int DestinationX { get => _destinationX; set { if (SetProperty(ref _destinationX, value)) { IsPlacementCustomized = true; } } }
+    public int DestinationY { get => _destinationY; set { if (SetProperty(ref _destinationY, value)) { IsPlacementCustomized = true; } } }
 
+    /// <summary>A user placement: marks the track so automatic layout leaves it alone.</summary>
     public void SetDestination(PixelRect rectangle)
+    {
+        ApplyLayoutDestination(rectangle);
+        IsPlacementCustomized = true;
+    }
+
+    /// <summary>An automatic placement: leaves the customized flag exactly as it was.</summary>
+    public void ApplyLayoutDestination(PixelRect rectangle)
     {
         var previous = new PixelRect(_destinationX, _destinationY, _destinationWidth, _destinationHeight);
         (_destinationX, _destinationY, _destinationWidth, _destinationHeight) =
@@ -83,7 +124,9 @@ public sealed class VideoTrackViewModel : ObservableObject
         set
         {
             var normalized = Math.Max(2, value / 2 * 2);
-            if (!SetProperty(ref _destinationWidth, normalized) || !AspectRatioLocked || _syncingSize)
+            if (!SetProperty(ref _destinationWidth, normalized)) { return; }
+            IsPlacementCustomized = true;
+            if (!AspectRatioLocked || _syncingSize)
             {
                 return;
             }
@@ -101,7 +144,9 @@ public sealed class VideoTrackViewModel : ObservableObject
         set
         {
             var normalized = Math.Max(2, value / 2 * 2);
-            if (!SetProperty(ref _destinationHeight, normalized) || !AspectRatioLocked || _syncingSize)
+            if (!SetProperty(ref _destinationHeight, normalized)) { return; }
+            IsPlacementCustomized = true;
+            if (!AspectRatioLocked || _syncingSize)
             {
                 return;
             }
@@ -117,7 +162,6 @@ public sealed class VideoTrackViewModel : ObservableObject
     public bool AspectRatioLocked { get => _aspectRatioLocked; set => SetProperty(ref _aspectRatioLocked, value); }
     public bool IncludeAudio { get => _includeAudio; set => SetProperty(ref _includeAudio, value); }
     public double VolumePercent { get => _volumePercent; set => SetProperty(ref _volumePercent, Math.Clamp(value, 0, 200)); }
-    public int ZIndex { get => _zIndex; set => SetProperty(ref _zIndex, value); }
     public bool IsSelected { get => _isSelected; set => SetProperty(ref _isSelected, value); }
 
     public void SetMedia(MediaInfo media, PixelRect destination)
@@ -125,7 +169,7 @@ public sealed class VideoTrackViewModel : ObservableObject
         Media = media;
         StartSeconds = 0;
         SetRoi(PixelRect.FullFrame(media));
-        SetDestination(destination);
+        ApplyLayoutDestination(destination);
         FitMode = VideoFitMode.Fit;
         AspectRatioLocked = true;
         IncludeAudio = media.HasAudio;
@@ -146,24 +190,30 @@ public sealed class VideoTrackViewModel : ObservableObject
         if (previous.Height != normalized.Height || roi.Height != normalized.Height) { OnPropertyChanged(nameof(RoiHeight)); }
     }
 
-    public VideoTrack ToModel() => new(
+    /// <summary>Snapshot using the layer order this track already carries.</summary>
+    public VideoTrack ToModel() => ToModel(ZIndex);
+
+    /// <summary>Layer order comes from the track list, so the caller may override it.</summary>
+    public VideoTrack ToModel(int zIndex) => new(
         Media ?? throw new InvalidOperationException($"{Name}에 영상이 없습니다."),
         TimeSpan.FromSeconds(StartSeconds),
         new(RoiX, RoiY, RoiWidth, RoiHeight),
         new(DestinationX, DestinationY, DestinationWidth, DestinationHeight),
         FitMode,
         AspectRatioLocked,
-        ZIndex,
+        zIndex,
         IncludeAudio,
         VolumePercent / 100d);
 }
 
-public sealed class AudioTrackViewModel : ObservableObject
+public sealed class AudioTrackViewModel : ObservableObject, ITimelineTrack
 {
     private MediaInfo? _media;
     private double _startSeconds;
     private bool _includeAudio = true;
     private double _volumePercent = 30;
+    private bool _isEditingStart;
+    private string _startEditText = "";
 
     public MediaInfo? Media
     {
@@ -180,6 +230,9 @@ public sealed class AudioTrackViewModel : ObservableObject
         }
     }
 
+    public string Name => "MP3";
+    public bool IsEditingStart { get => _isEditingStart; set => SetProperty(ref _isEditingStart, value); }
+    public string StartEditText { get => _startEditText; set => SetProperty(ref _startEditText, value); }
     public string DisplayName => Media?.DisplayName ?? "선택적 MP3";
     public string Details => Media is null ? "MP3 파일을 놓으세요" : $"{Media.Codec.ToUpperInvariant()} · {Media.Duration:mm\\:ss\\.f}";
     public bool HasMedia => Media is not null;
@@ -196,7 +249,7 @@ public sealed class AudioTrackViewModel : ObservableObject
         VolumePercent = 30;
     }
 
-    public ExtraAudioTrack? ToModel() => Media is null
+    public AudioTrack? ToModel() => Media is null
         ? null
         : new(Media, TimeSpan.FromSeconds(StartSeconds), IncludeAudio, VolumePercent / 100d);
 }

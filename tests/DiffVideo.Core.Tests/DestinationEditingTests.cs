@@ -60,7 +60,7 @@ public sealed class DestinationEditingTests
     public void ValidatorAcceptsPartlyAndFullyOffCanvas(int x, int y)
     {
         var composition = TestComposition.Create();
-        composition = composition with { Video1 = composition.Video1 with { Destination = new(x, y, 960, 1080) } };
+        composition = composition.WithVideo(0, composition.Videos[0] with { Destination = new(x, y, 960, 1080) });
         Assert.Empty(CompositionValidator.Validate(composition));
         var command = DiffVideo.Infrastructure.FfmpegCommandBuilder.BuildExport(composition, "out.mp4", DiffVideo.Infrastructure.H264Encoder.MediaFoundation);
         Assert.Contains(command.Arguments, argument => argument.Contains($"overlay=x={x}:y={y}:"));

@@ -60,28 +60,28 @@ internal static partial class PreviewDiagnostics
         window.UpdateLayout(); window.UpdateTimeline();
         Assert(window.TransportBar.ActualHeight > 0 && window.TimelineViewportHost.ActualHeight >= 100, "Range controls and tracks fit minimum window");
         SaveScreenshot(window, Path.ChangeExtension(report, "minimum.png"));
-        vm.Video1.StartSeconds = 1;
-        vm.Video2.StartSeconds = 3;
+        vm.Videos[0].StartSeconds = 1;
+        vm.Videos[1].StartSeconds = 3;
         var expectedOverlapEnd = Math.Min(vm.OutputDurationSeconds, Math.Min(
-            vm.Video1.StartSeconds + vm.Video1.DurationSeconds,
-            vm.Video2.StartSeconds + vm.Video2.DurationSeconds));
+            vm.Videos[0].StartSeconds + vm.Videos[0].DurationSeconds,
+            vm.Videos[1].StartSeconds + vm.Videos[1].DurationSeconds));
         vm.SetOverlapExportRange();
         Assert(vm.ExportStartSeconds == 3 && vm.ExportEndSeconds == expectedOverlapEnd, "Overlap preset selects the video intersection");
         vm.OutputDurationSeconds = 200;
-        vm.Video1.StartSeconds = 1;
-        vm.Video2.StartSeconds = vm.Video1.StartSeconds + vm.Video1.DurationSeconds + 1;
+        vm.Videos[0].StartSeconds = 1;
+        vm.Videos[1].StartSeconds = vm.Videos[0].StartSeconds + vm.Videos[0].DurationSeconds + 1;
         vm.SetExportBoundary(true, 10);
         vm.SetExportBoundary(false, 20);
         var unchangedStart = vm.ExportStartSeconds;
         var unchangedEnd = vm.ExportEndSeconds;
         vm.SetOverlapExportRange();
         Assert(vm.ExportStartSeconds == unchangedStart && vm.ExportEndSeconds == unchangedEnd, "Disjoint videos preserve current range");
-        vm.Video1.StartSeconds = 1;
-        vm.Video2.StartSeconds = 3;
+        vm.Videos[0].StartSeconds = 1;
+        vm.Videos[1].StartSeconds = 3;
         vm.OutputDurationSeconds = 4;
         Assert(vm.ExportStartSeconds < vm.ExportEndSeconds && vm.ExportEndSeconds <= 4, "Shorter timeline clamps custom range");
-        var expectedVideoStart = Math.Min(vm.Video1.StartSeconds, vm.Video2.StartSeconds);
-        var expectedVideoEnd = Math.Max(vm.Video1.StartSeconds + vm.Video1.DurationSeconds, vm.Video2.StartSeconds + vm.Video2.DurationSeconds);
+        var expectedVideoStart = Math.Min(vm.Videos[0].StartSeconds, vm.Videos[1].StartSeconds);
+        var expectedVideoEnd = Math.Max(vm.Videos[0].StartSeconds + vm.Videos[0].DurationSeconds, vm.Videos[1].StartSeconds + vm.Videos[1].DurationSeconds);
         vm.SetVideoExportRange();
         Assert(vm.OutputDurationSeconds >= expectedVideoEnd && vm.ExportStartSeconds == expectedVideoStart && vm.ExportEndSeconds == vm.OutputDurationSeconds, "Whole video range extends the output duration");
         Assert(snapshot.Output.ExportStart.TotalSeconds == 5 && snapshot.Output.EffectiveExportEnd.TotalSeconds == 12, "Captured export is unaffected by later edits");

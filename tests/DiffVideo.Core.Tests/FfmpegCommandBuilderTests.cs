@@ -23,11 +23,9 @@ public sealed class FfmpegCommandBuilderTests
     public void ExportGraph_UsesSilentAudioWhenEverythingIsMuted()
     {
         var composition = TestComposition.Create(includeMp3: false);
-        composition = composition with
-        {
-            Video1 = composition.Video1 with { IncludeAudio = false },
-            Video2 = composition.Video2 with { IncludeAudio = false }
-        };
+        composition = composition
+            .WithVideo(0, composition.Videos[0] with { IncludeAudio = false })
+            .WithVideo(1, composition.Videos[1] with { IncludeAudio = false });
 
         var graph = FilterGraph(FfmpegCommandBuilder.BuildExport(composition, "output.mp4.part", H264Encoder.MediaFoundation));
         Assert.Contains("anullsrc=r=48000:cl=stereo", graph);
@@ -84,6 +82,6 @@ public sealed class FfmpegCommandBuilderTests
     {
         var composition = TestComposition.Create();
         var service = new FfmpegExportService(new("missing.exe", "missing.exe"));
-        await Assert.ThrowsAsync<IOException>(() => service.ExportAsync(composition, composition.Video1.Media.Path, overwrite: true));
+        await Assert.ThrowsAsync<IOException>(() => service.ExportAsync(composition, composition.Videos[0].Media.Path, overwrite: true));
     }
 }

@@ -19,10 +19,9 @@ internal sealed class ExportLabelRenderer : IDisposable
         var result = new ExportLabelRenderer();
         try
         {
-            var tracks = new[] { snapshot.Video1, snapshot.Video2 };
-            for (var i = 0; i < tracks.Length; i++)
+            for (var i = 0; i < snapshot.Videos.Count; i++)
             {
-                var track = tracks[i];
+                var track = snapshot.Videos[i];
                 if (track.FileNameLabel is not { Enabled: true } label) { continue; }
                 result._directory ??= Directory.CreateTempSubdirectory("DiffVideo-labels-").FullName;
                 result.Assets.Add(Render(track, label, i, result._directory));

@@ -9,9 +9,13 @@ namespace DiffVideo.App.Services;
 /// <summary>Coordinates source players; never generates a merged video frame or file.</summary>
 public sealed class PlayerPreviewSession : IDisposable
 {
-    private readonly SourceVideoPlayer _one;
-    private readonly SourceVideoPlayer _two;
+    private readonly FfmpegPaths _paths;
+    private readonly bool _forceDecoder;
+    private readonly List<SourceVideoPlayer> _players = [];
+    private readonly List<bool> _lagging = [];
+    private readonly List<bool> _everLagged = [];
     private readonly BufferedTimelineAudio _audio;
+    private readonly PlaybackSkewPolicy _skew = new();
     private readonly SemaphoreSlim _operations = new(1, 1);
     private readonly DrawingGroup _canvas = new();
     private Composition? _layoutComposition;
@@ -20,16 +24,24 @@ public sealed class PlayerPreviewSession : IDisposable
 
     public PlayerPreviewSession(FfmpegPaths paths, bool forceDecoder = false)
     {
-        _one = new(paths, forceDecoder);
-        _two = new(paths, forceDecoder);
+        _paths = paths;
+        _forceDecoder = forceDecoder;
         _audio = new(paths);
         Image = new DrawingImage(_canvas);
     }
 
     public ImageSource Image { get; }
-    public string Backends => $"{_one.Backend} / {_two.Backend}";
+    public string Backends => string.Join(" / ", _players.Select(player => player.Backend));
     public int BufferingCount { get; private set; }
     public double MaximumObservedSkewSeconds { get; private set; }
+
+    /// <summary>Per-track lag flags, indexed like the composition videos; read after each time callback.</summary>
+    public IReadOnlyList<bool> TrackLagging => _lagging;
+
+    /// <summary>Tracks that lagged at any point in the run, for the message shown once it ends.</summary>
+    public IReadOnlyList<bool> TrackEverLagged => _everLagged;
+
+    public double BadgeThresholdSeconds => _skew.BadgeSeconds;
 
     public async Task ShowStillAsync(Composition composition, double atSeconds, CancellationToken token, Func<bool>? isCurrent = null)
     {
@@ -39,9 +51,8 @@ public sealed class PlayerPreviewSession : IDisposable
             ObjectDisposedException.ThrowIf(_disposed, this);
             await OpenAsync(composition, token);
             ApplyLayout(composition);
-            await Task.WhenAll(
-                _one.ShowStillAsync(PreviewTiming.Map(atSeconds, composition.Video1).Seconds, token, isCurrent),
-                _two.ShowStillAsync(PreviewTiming.Map(atSeconds, composition.Video2).Seconds, token, isCurrent));
+            await Task.WhenAll(composition.Videos.Select((track, index) =>
+                _players[index].ShowStillAsync(PreviewTiming.Map(atSeconds, track).Seconds, token, isCurrent)));
         }
         finally { _operations.Release(); }
     }
@@ -55,13 +66,12 @@ public sealed class PlayerPreviewSession : IDisposable
             onBuffering(true);
             await OpenAsync(composition, token);
             ApplyLayout(composition);
-            await Task.WhenAll(
-                _one.PrepareAsync(composition.Video1, from, composition.Output.FramesPerSecond, token),
-                _two.PrepareAsync(composition.Video2, from, composition.Output.FramesPerSecond, token),
-                _audio.PrepareAsync(composition, from, token));
+            for (var index = 0; index < _everLagged.Count; index++) { _everLagged[index] = false; }
+            await Task.WhenAll(composition.Videos
+                .Select((track, index) => _players[index].PrepareAsync(track, from, composition.Output.FramesPerSecond, token))
+                .Append(_audio.PrepareAsync(composition, from, token)));
             token.ThrowIfCancellationRequested();
-            _one.Present(composition.Video1, from);
-            _two.Present(composition.Video2, from);
+            PresentAll(composition, from);
             _audio.Play();
             onBuffering(false);
             var lastTime = from;
@@ -73,33 +83,22 @@ public sealed class PlayerPreviewSession : IDisposable
                 if (time >= composition.Output.Duration.TotalSeconds - 0.002) { break; }
                 if (time > lastTime + 0.001) { stalled.Restart(); lastTime = time; }
                 if (stalled.Elapsed > TimeSpan.FromSeconds(20)) { throw new TimeoutException("재생 시계가 진행되지 않습니다."); }
-                var readyOne = _one.Present(composition.Video1, time);
-                var readyTwo = _two.Present(composition.Video2, time);
-                ObserveSkew(_one, composition.Video1, time);
-                ObserveSkew(_two, composition.Video2, time);
-                if (!readyOne || !readyTwo || _audio.NeedsBuffer)
+
+                // A lagging video keeps its last frame and raises its own badge; it no longer stops
+                // the shared clock. Only a starved audio mix can, because the audio device IS the
+                // clock here and no independent wall clock exists to take over.
+                PresentAll(composition, time);
+                if (_audio.NeedsBuffer)
                 {
-                    // The audio device clock stops here; no independent wall clock keeps running.
                     _audio.Pause();
-                    _one.Pause();
-                    _two.Pause();
+                    foreach (var player in _players) { player.Pause(); }
                     time = from + _audio.PositionSeconds;
                     onTime(time);
                     onBuffering(true);
                     BufferingCount++;
-                    await Task.WhenAll(
-                        _audio.WaitForBufferAsync(token),
-                        _one.PrepareAsync(composition.Video1, time, composition.Output.FramesPerSecond, token),
-                        _two.PrepareAsync(composition.Video2, time, composition.Output.FramesPerSecond, token));
-                    var timeout = Stopwatch.StartNew();
-                    while (_one.IsBuffering || _two.IsBuffering)
-                    {
-                        if (timeout.Elapsed > TimeSpan.FromSeconds(20)) { throw new TimeoutException("영상 재생 준비 시간이 초과되었습니다."); }
-                        await Task.Delay(20, token);
-                    }
+                    await _audio.WaitForBufferAsync(token);
                     token.ThrowIfCancellationRequested();
-                    _one.Present(composition.Video1, time);
-                    _two.Present(composition.Video2, time);
+                    PresentAll(composition, time);
                     _audio.Play();
                     onBuffering(false);
                     stalled.Restart();
@@ -110,7 +109,7 @@ public sealed class PlayerPreviewSession : IDisposable
         finally
         {
             _audio.Stop();
-            await Task.WhenAll(_one.StopAsync(), _two.StopAsync());
+            await Task.WhenAll(_players.Select(player => player.StopAsync()));
             onBuffering(false);
             _operations.Release();
         }
@@ -119,47 +118,36 @@ public sealed class PlayerPreviewSession : IDisposable
     public void PauseImmediately()
     {
         _audio.Pause();
-        _one.Pause();
-        _two.Pause();
+        foreach (var player in _players) { player.Pause(); }
     }
 
-    private void ObserveSkew(SourceVideoPlayer player, VideoTrack track, double time)
-    {
-        var position = PreviewTiming.Map(time, track);
-        if (position.IsActive)
-        {
-            MaximumObservedSkewSeconds = Math.Max(MaximumObservedSkewSeconds, Math.Abs(player.PositionSeconds - position.Seconds));
-        }
-    }
-
-    private async Task OpenAsync(Composition composition, CancellationToken token)
-    {
-        await Task.WhenAll(_one.OpenAsync(composition.Video1.Media, token), _two.OpenAsync(composition.Video2.Media, token));
-    }
-
-    public void SetRoiFocus(int? videoIndex)
+    /// <summary>Index of the track lifted above its layer order while its ROI is being edited.</summary>
+    public void SetRoiFocus(int? trackIndex)
     {
         if (_disposed) { return; }
-        _roiFocus = videoIndex;
+        _roiFocus = trackIndex;
         if (_layoutComposition is { } composition) { ApplyLayout(composition); }
     }
 
     public void ApplyLayout(Composition composition)
     {
         _layoutComposition = composition;
+        EnsurePlayers(composition.Videos.Count);
         _canvas.Children.Clear();
         var bounds = new RectangleGeometry(new Rect(0, 0, composition.Output.Width, composition.Output.Height));
         _canvas.ClipGeometry = bounds;
         _canvas.Children.Add(new GeometryDrawing(Brushes.Black, null, bounds));
         // This is only a display override; the export snapshot and model ZIndex are untouched.
-        foreach (var item in new[] { (Index: 1, Track: composition.Video1, Player: _one), (Index: 2, Track: composition.Video2, Player: _two) }
-            .OrderBy(item => item.Index == _roiFocus ? int.MaxValue : item.Track.ZIndex))
+        var ordered = composition.Videos
+            .Select((track, index) => (Index: index, Track: track))
+            .OrderBy(item => item.Index == _roiFocus ? int.MaxValue : item.Track.ZIndex);
+        foreach (var item in ordered)
         {
             var layout = PreviewLayout.From(item.Track);
             var dst = item.Track.Destination;
             _canvas.Children.Add(new GeometryDrawing(Brushes.Black, null, new RectangleGeometry(new Rect(dst.X, dst.Y, dst.Width, dst.Height))));
             var transformed = new DrawingGroup { Transform = new MatrixTransform(layout.ScaleX, 0, 0, layout.ScaleY, layout.TranslateX, layout.TranslateY) };
-            transformed.Children.Add(item.Player.Drawing);
+            transformed.Children.Add(_players[item.Index].Drawing);
             var clip = layout.Clip;
             var clipped = new DrawingGroup { ClipGeometry = new RectangleGeometry(new Rect(clip.X, clip.Y, clip.Width, clip.Height)) };
             clipped.Children.Add(transformed);
@@ -167,11 +155,52 @@ public sealed class PlayerPreviewSession : IDisposable
         }
     }
 
+    private void PresentAll(Composition composition, double time)
+    {
+        var reseek = _skew.ReseekSeconds;
+        var badge = _skew.BadgeSeconds;
+        for (var index = 0; index < composition.Videos.Count && index < _players.Count; index++)
+        {
+            var result = _players[index].Present(composition.Videos[index], time, reseek);
+            _skew.Observe(result.LagSeconds);
+            MaximumObservedSkewSeconds = Math.Max(MaximumObservedSkewSeconds, result.LagSeconds);
+            var lagging = result.IsBuffering || result.LagSeconds > badge;
+            _lagging[index] = lagging;
+            _everLagged[index] |= lagging;
+        }
+    }
+
+    // ponytail: players are bound to row positions, so reordering rows makes two players
+    // reopen each other's file. Fine for four tracks; key players by media path if it drags.
+    private async Task OpenAsync(Composition composition, CancellationToken token)
+    {
+        EnsurePlayers(composition.Videos.Count);
+        await Task.WhenAll(composition.Videos.Select((track, index) => _players[index].OpenAsync(track.Media, token)));
+    }
+
+    private void EnsurePlayers(int count)
+    {
+        while (_players.Count < count)
+        {
+            _players.Add(new(_paths, _forceDecoder));
+            _lagging.Add(false);
+            _everLagged.Add(false);
+        }
+
+        while (_players.Count > count)
+        {
+            _players[^1].Dispose();
+            _players.RemoveAt(_players.Count - 1);
+            _lagging.RemoveAt(_lagging.Count - 1);
+            _everLagged.RemoveAt(_everLagged.Count - 1);
+        }
+    }
+
     public void Dispose()
     {
         _disposed = true;
         _audio.Dispose();
-        _one.Dispose();
-        _two.Dispose();
+        foreach (var player in _players) { player.Dispose(); }
+        _players.Clear();
     }
 }

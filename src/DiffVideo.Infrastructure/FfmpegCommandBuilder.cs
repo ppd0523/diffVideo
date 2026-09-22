@@ -110,9 +110,12 @@ public static class FfmpegCommandBuilder
     private static List<string> CreateInputArguments(Composition composition)
     {
         var arguments = new List<string> { "-hide_banner", "-nostdin" };
-        arguments.AddRange(["-i", composition.Video1.Media.Path]);
-        arguments.AddRange(["-i", composition.Video2.Media.Path]);
-        if (composition.ExtraAudio is { } audio)
+        foreach (var track in composition.Videos)
+        {
+            arguments.AddRange(["-i", track.Media.Path]);
+        }
+
+        foreach (var audio in composition.Audios)
         {
             arguments.AddRange(["-i", audio.Media.Path]);
         }
@@ -129,7 +132,7 @@ public static class FfmpegCommandBuilder
             $"color=c=black:s={output.Width}x{output.Height}:r={output.FramesPerSecond}:d={Seconds(output.Duration.TotalSeconds)}[base]"
         };
 
-        var tracks = new[] { (Track: composition.Video1, Input: 0), (Track: composition.Video2, Input: 1) };
+        var tracks = composition.Videos.Select((track, input) => (Track: track, Input: input)).ToList();
         foreach (var item in tracks)
         {
             filters.Add(BuildVideoFilter(item.Track, item.Input, output));
@@ -144,7 +147,7 @@ public static class FfmpegCommandBuilder
             if (labelIndex >= 0)
             {
                 var label = labels![labelIndex];
-                var input = (composition.ExtraAudio is null ? 2 : 3) + labelIndex;
+                var input = composition.Videos.Count + composition.Audios.Count + labelIndex;
                 filters.Add($"[{video}][{input}:v]overlay=x={label.X}:y={label.Y}:shortest=1:eof_action=repeat[labeled{item.Input}]");
                 video = $"labeled{item.Input}";
             }
@@ -169,19 +172,22 @@ public static class FfmpegCommandBuilder
         var output = composition.Output;
         var filters = new List<string>();
         var audioLabels = new List<string>();
-        AddAudioFilter(filters, audioLabels, composition.Video1, 0, output.Duration);
-        AddAudioFilter(filters, audioLabels, composition.Video2, 1, output.Duration);
-
-        if (composition.ExtraAudio is { IncludeAudio: true } extraAudio)
+        foreach (var (input, gain) in composition.AudioMix())
         {
-            var index = 2;
-            var available = Math.Max(0, Math.Min(extraAudio.Media.Duration.TotalSeconds, output.Duration.TotalSeconds - extraAudio.Start.TotalSeconds));
-            if (available > 0)
+            var (start, sourceDuration) = input < composition.Videos.Count
+                ? (composition.Videos[input].Start, composition.Videos[input].Media.Duration)
+                : (composition.Audios[input - composition.Videos.Count].Start,
+                   composition.Audios[input - composition.Videos.Count].Media.Duration);
+            var available = Math.Max(0, Math.Min(sourceDuration.TotalSeconds, output.Duration.TotalSeconds - start.TotalSeconds));
+            if (available <= 0)
             {
-                var fadeOut = Math.Max(0, available - 0.01);
-                filters.Add($"[{index}:a:0]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,volume={Number(extraAudio.Volume)},atrim=duration={Seconds(available)},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.01,afade=t=out:st={Seconds(fadeOut)}:d=0.01,adelay={Milliseconds(extraAudio.Start)}:all=1[amp3]");
-                audioLabels.Add("amp3");
+                continue;
             }
+
+            var label = $"a{input}";
+            var fadeOut = Math.Max(0, available - 0.01);
+            filters.Add($"[{input}:a:0]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,volume={Number(gain)},atrim=duration={Seconds(available)},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.01,afade=t=out:st={Seconds(fadeOut)}:d=0.01,adelay={Milliseconds(start)}:all=1[{label}]");
+            audioLabels.Add(label);
         }
 
         if (audioLabels.Count == 0)
@@ -190,6 +196,8 @@ public static class FfmpegCommandBuilder
         }
         else
         {
+            // Shares already sum to one, so amix must not divide again; the limiter stays as a
+            // guard against correlated peaks rather than as the thing holding the mix together.
             var inputs = string.Concat(audioLabels.Select(label => $"[{label}]"));
             filters.Add($"{inputs}amix=inputs={audioLabels.Count}:duration=longest:normalize=0,alimiter=limit=0.95:attack=5:release=50,apad=whole_dur={Seconds(output.Duration.TotalSeconds)},atrim=duration={Seconds(output.Duration.TotalSeconds)},asetpts=PTS-STARTPTS[aout]");
         }
@@ -221,25 +229,6 @@ public static class FfmpegCommandBuilder
         var stop = Math.Max(0, output.Duration.TotalSeconds - start - sourceDuration);
         builder.Append(CultureInfo.InvariantCulture, $"setpts=PTS-STARTPTS,tpad=start_mode=clone:start_duration={Seconds(start)}:stop_mode=clone:stop_duration={Seconds(stop)},trim=duration={Seconds(output.Duration.TotalSeconds)},setpts=PTS-STARTPTS[v{inputIndex}]");
         return builder.ToString();
-    }
-
-    private static void AddAudioFilter(List<string> filters, List<string> labels, VideoTrack track, int inputIndex, TimeSpan outputDuration)
-    {
-        if (!track.IncludeAudio || !track.Media.HasAudio)
-        {
-            return;
-        }
-
-        var available = Math.Max(0, Math.Min(track.Media.Duration.TotalSeconds, outputDuration.TotalSeconds - track.Start.TotalSeconds));
-        if (available <= 0)
-        {
-            return;
-        }
-
-        var label = $"a{inputIndex}";
-        var fadeOut = Math.Max(0, available - 0.01);
-        filters.Add($"[{inputIndex}:a:0]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,volume={Number(track.Volume)},atrim=duration={Seconds(available)},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.01,afade=t=out:st={Seconds(fadeOut)}:d=0.01,adelay={Milliseconds(track.Start)}:all=1[{label}]");
-        labels.Add(label);
     }
 
     private static void AddEncoderArguments(List<string> arguments, Composition composition, H264Encoder encoder)

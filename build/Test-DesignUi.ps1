@@ -11,7 +11,12 @@ $inputs = @('motion-one-80s.mp4', 'motion-two-80s.mp4', 'music-80s.mp3') | ForEa
     $mediaPath
 }
 $reportPath = Join-Path $projectRoot "artifacts\ui-validation\design-$Mode.json"
-$arguments = @('--preview-diagnostics', $Mode) + @($inputs | ForEach-Object { '"' + $_ + '"' }) + @(('"' + $reportPath + '"'), '5')
+$videoList = ($inputs[0..($inputs.Count - 2)]) -join ','
+$arguments = @('--preview-diagnostics', $Mode,
+    '--videos', ('"' + $videoList + '"'),
+    '--audio', ('"' + $inputs[-1] + '"'),
+    '--report', ('"' + $reportPath + '"'),
+    '--seconds', '5')
 $process = Start-Process -FilePath ([IO.Path]::GetFullPath($ExecutablePath)) -ArgumentList $arguments -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru
 try {
     if (-not $process.WaitForExit(55000)) { throw "UI diagnostics timed out: $Mode" }

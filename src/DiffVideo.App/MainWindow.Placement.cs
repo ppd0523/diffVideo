@@ -10,41 +10,6 @@ namespace DiffVideo.App;
 
 public partial class MainWindow
 {
-    private void InitializePlacementHandles()
-    {
-        foreach (var border in new[] { Video1Overlay, Video2Overlay })
-        {
-            var label = border.Child;
-            border.Child = null;
-            var grid = new Grid();
-            grid.Children.Add(label);
-            foreach (var (horizontal, vertical) in new[]
-            {
-                (HorizontalAlignment.Left, VerticalAlignment.Top),
-                (HorizontalAlignment.Center, VerticalAlignment.Top),
-                (HorizontalAlignment.Right, VerticalAlignment.Top),
-                (HorizontalAlignment.Left, VerticalAlignment.Center),
-                (HorizontalAlignment.Right, VerticalAlignment.Center),
-                (HorizontalAlignment.Left, VerticalAlignment.Bottom),
-                (HorizontalAlignment.Center, VerticalAlignment.Bottom),
-                (HorizontalAlignment.Right, VerticalAlignment.Bottom)
-            })
-            {
-                var handle = new Border { Width = 16, Height = 16,
-                    Background = new SolidColorBrush(Color.FromRgb(250, 250, 249)),
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(120, 113, 108)), BorderThickness = new Thickness(2),
-                    HorizontalAlignment = horizontal, VerticalAlignment = vertical, IsHitTestVisible = false };
-                handle.SetBinding(VisibilityProperty, new Binding("IsSelected") { Converter = new BooleanToVisibilityConverter() });
-                grid.Children.Add(handle);
-            }
-            border.Child = grid;
-            border.LostMouseCapture += (_, _) =>
-            {
-                if (ReferenceEquals(_overlayDragBorder, border) && !border.IsMouseCaptured) { CancelOverlayDrag(); }
-            };
-        }
-    }
-
     private RoiEdges PlacementEdges(Border border, Point point)
     {
         // Hit targets stay usable when the logical output canvas is scaled down.
@@ -76,6 +41,7 @@ public partial class MainWindow
         _overlayDragTrack = track;
         _overlayDragOrigin = origin;
         _overlayInitial = new(track.DestinationX, track.DestinationY, track.DestinationWidth, track.DestinationHeight);
+        _overlayInitialCustomized = track.IsPlacementCustomized;
         _overlayEdges = edges;
         _overlayDragBorder = border;
         if (border.CaptureMouse()) { return true; }
@@ -98,6 +64,8 @@ public partial class MainWindow
         _overlayDragTrack = null;
         _overlayDragBorder = null;
         track.SetDestination(_overlayInitial);
+        // Restoring the rectangle must also restore the flag: a cancelled drag moved nothing.
+        track.IsPlacementCustomized = _overlayInitialCustomized;
         ViewModel?.UpdatePlacementPreview();
         border?.ReleaseMouseCapture();
     }

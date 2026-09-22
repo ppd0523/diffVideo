@@ -37,7 +37,11 @@ function Invoke-Preview([string]$Mode, [int]$Duration, [bool]$Measure) {
     foreach ($generated in @($report, "$report.ready")) {
         if (Test-Path -LiteralPath $generated) { Remove-Item -LiteralPath $generated -Force }
     }
-    $arguments = @('--preview-diagnostics', $Mode, ('"' + $videoOne + '"'), ('"' + $videoTwo + '"'), ('"' + $music + '"'), ('"' + $report + '"'), $Duration)
+    $arguments = @('--preview-diagnostics', $Mode,
+        '--videos', ('"' + $videoOne + ',' + $videoTwo + '"'),
+        '--audio', ('"' + $music + '"'),
+        '--report', ('"' + $report + '"'),
+        '--seconds', $Duration)
     $process = Start-Process -FilePath $ExecutablePath -ArgumentList $arguments -WorkingDirectory $projectRoot -PassThru
     $samples = [Collections.Generic.List[object]]::new()
     try {

@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:DiffVideo.App.Converters"
         xmlns:controls="clr-namespace:DiffVideo.App.Controls"
+        xmlns:vm="clr-namespace:DiffVideo.App.ViewModels"
         Title="DiffVideo" Width="1440" Height="900" MinWidth="1120" MinHeight="720"
         Style="{StaticResource {x:Type Window}}"
         Closing="Window_Closing" PreviewKeyDown="Window_PreviewKeyDown" PreviewKeyUp="Window_PreviewKeyUp" Deactivated="Window_Deactivated">
@@ -10,6 +11,7 @@
         <conv:TimelinePositionConverter x:Key="TimelinePosition" />
         <conv:TimelineWidthConverter x:Key="TimelineWidth" />
         <conv:ClipHeightConverter x:Key="ClipHeight" />
+        <conv:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibility" />
         <Style x:Key="ExportBoundaryThumb" TargetType="Thumb">
             <Setter Property="Width" Value="14"/><Setter Property="Height" Value="22"/>
             <Setter Property="Cursor" Value="SizeWE"/>
@@ -48,6 +50,16 @@
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
+        <Style x:Key="PlacementHandle" TargetType="Border">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Background" Value="#FAFAF9" />
+            <Setter Property="BorderBrush" Value="#78716C" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="Visibility" Value="{Binding IsSelected, Converter={StaticResource BoolToVisibility}}" />
+        </Style>
+
         <Style x:Key="TrackOverlay" TargetType="Border">
             <Setter Property="BorderBrush" Value="{StaticResource CanvasBrush}" />
             <Setter Property="BorderThickness" Value="1" />
@@ -94,22 +106,47 @@
                                   PreviewMouseRightButtonDown="PreviewRoi_RightButtonDown" PreviewMouseRightButtonUp="PreviewRoi_RightButtonUp"
                                   PreviewMouseMove="PreviewRoi_MouseMove" LostMouseCapture="PreviewRoi_LostMouseCapture">
                                 <Image Source="{Binding PreviewImage}" Stretch="Fill" RenderOptions.BitmapScalingMode="HighQuality" />
-                                <Canvas ClipToBounds="True" IsHitTestVisible="{Binding IsEditingEnabled}">
-                                    <Border x:Name="Video1Overlay" DataContext="{Binding Video1}" Style="{StaticResource TrackOverlay}" Width="{Binding DestinationWidth}" Height="{Binding DestinationHeight}"
-                                            Canvas.Left="{Binding DestinationX}" Canvas.Top="{Binding DestinationY}" Panel.ZIndex="{Binding ZIndex}" Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibility}}"
-                                            MouseLeftButtonDown="Overlay_MouseLeftButtonDown" MouseMove="Overlay_MouseMove" MouseLeftButtonUp="Overlay_MouseLeftButtonUp">
-                                        <Border Background="#E61C1917" CornerRadius="0" Padding="12,8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12">
-                                            <StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Foreground="{StaticResource CanvasBrush}" Width="28" Height="28" /><TextBlock Text="1" Foreground="{StaticResource CanvasBrush}" FontSize="22" FontWeight="SemiBold" Margin="8,0,0,0" /></StackPanel>
-                                        </Border>
-                                    </Border>
-                                    <Border x:Name="Video2Overlay" DataContext="{Binding Video2}" Style="{StaticResource TrackOverlay}" Width="{Binding DestinationWidth}" Height="{Binding DestinationHeight}"
-                                            Canvas.Left="{Binding DestinationX}" Canvas.Top="{Binding DestinationY}" Panel.ZIndex="{Binding ZIndex}" Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibility}}"
-                                            MouseLeftButtonDown="Overlay_MouseLeftButtonDown" MouseMove="Overlay_MouseMove" MouseLeftButtonUp="Overlay_MouseLeftButtonUp">
-                                        <Border Background="#E61C1917" CornerRadius="0" Padding="12,8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12">
-                                            <StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Foreground="{StaticResource CanvasBrush}" Width="28" Height="28" /><TextBlock Text="2" Foreground="{StaticResource CanvasBrush}" FontSize="22" FontWeight="SemiBold" Margin="8,0,0,0" /></StackPanel>
-                                        </Border>
-                                    </Border>
-                                </Canvas>
+                                <ItemsControl x:Name="PreviewOverlays" ItemsSource="{Binding Videos}" ClipToBounds="True" IsHitTestVisible="{Binding IsEditingEnabled}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><Canvas ClipToBounds="True" /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="Canvas.Left" Value="{Binding DestinationX}" />
+                                            <Setter Property="Canvas.Top" Value="{Binding DestinationY}" />
+                                            <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}" />
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource TrackOverlay}" Width="{Binding DestinationWidth}" Height="{Binding DestinationHeight}"
+                                                    Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibility}}"
+                                                    MouseLeftButtonDown="Overlay_MouseLeftButtonDown" MouseMove="Overlay_MouseMove" MouseLeftButtonUp="Overlay_MouseLeftButtonUp"
+                                                    LostMouseCapture="Overlay_LostMouseCapture">
+                                                <Grid>
+                                                    <Border Style="{StaticResource PlacementHandle}" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                                                    <Border Style="{StaticResource PlacementHandle}" HorizontalAlignment="Center" VerticalAlignment="Top" />
+                                                    <Border Style="{StaticResource PlacementHandle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                                                    <Border Style="{StaticResource PlacementHandle}" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                                    <Border Style="{StaticResource PlacementHandle}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                    <Border Style="{StaticResource PlacementHandle}" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+                                                    <Border Style="{StaticResource PlacementHandle}" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                                                    <Border Style="{StaticResource PlacementHandle}" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+                                                    <Border Background="#E61C1917" CornerRadius="0" Padding="12,8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12">
+                                                        <StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Foreground="{StaticResource CanvasBrush}" Width="28" Height="28" /><TextBlock Text="{Binding Name}" Foreground="{StaticResource CanvasBrush}" FontSize="22" FontWeight="SemiBold" Margin="8,0,0,0" /></StackPanel>
+                                                    </Border>
+                                                    <Border Background="#CC1C1917" CornerRadius="0" Padding="16,12" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
+                                                            Visibility="{Binding IsLagging, Converter={StaticResource BoolToVisibility}}">
+                                                        <StackPanel>
+                                                            <ProgressBar IsIndeterminate="True" Width="96" Height="4" />
+                                                            <TextBlock Text="버퍼링" Foreground="{StaticResource CanvasBrush}" FontSize="12" HorizontalAlignment="Center" Margin="0,8,0,0" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                                 <Canvas IsHitTestVisible="False" ClipToBounds="True">
                                     <Rectangle x:Name="PreviewRoiSelection" Visibility="Collapsed" Stroke="{StaticResource CanvasBrush}" Fill="#4078716C" StrokeDashArray="4,2" />
                                 </Canvas>
@@ -210,8 +247,7 @@
                             <Grid IsEnabled="{Binding IsEditingEnabled}">
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto"/><RowDefinition Height="*" /></Grid.RowDefinitions>
                                 <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
-                                    <Border DataContext="{Binding Video1}" Margin="0,0,8,0"><Button Style="{StaticResource MediaSelector}" Click="MediaVideo_Click" ToolTip="영상 1 선택" AutomationProperties.Name="영상 1 선택"><StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" /><TextBlock Text="1" Margin="8,0,0,0" VerticalAlignment="Center" /></StackPanel></Button></Border>
-                                    <Border DataContext="{Binding Video2}"><Button Style="{StaticResource MediaSelector}" Click="MediaVideo_Click" ToolTip="영상 2 선택" AutomationProperties.Name="영상 2 선택"><StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" /><TextBlock Text="2" Margin="8,0,0,0" VerticalAlignment="Center" /></StackPanel></Button></Border>
+                                    <Button Style="{StaticResource MediaSelector}" Click="MediaVideo_Click" ToolTip="미디어 추가" AutomationProperties.Name="미디어 추가"><StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Add}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" /><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" Margin="4,0,0,0" /></StackPanel></Button>
                                     <Button x:Name="ResetRoiButton" Content="{StaticResource Icon.CropFree}" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="선택 영상의 ROI를 원본 전체로 복원" Click="ResetRoi_Click" IsEnabled="{Binding SelectedVideo.HasMedia}" Margin="8,0,0,0" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="0" Margin="0,0,0,12">
@@ -381,80 +417,93 @@
                 </Grid>
 <Grid x:Name="TimelineBody" Grid.Row="2">
 <Grid.ColumnDefinitions><ColumnDefinition x:Name="TimelineLabelColumn" Width="204" MinWidth="180"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-<Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="*"/><RowDefinition Height="*"/><RowDefinition Height="*"/><RowDefinition Height="32"/><RowDefinition Height="16"/></Grid.RowDefinitions>
+<Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="*"/><RowDefinition Height="16"/></Grid.RowDefinitions>
 <ContentControl Content="{StaticResource Icon.ViewTimeline}" Style="{StaticResource MaterialIcon}" ToolTip="통합 타임라인" HorizontalAlignment="Left" Width="18" Height="18"/>
-<DockPanel Grid.Row="1" DataContext="{Binding Video1}" Margin="0,0,6,0" IsEnabled="{Binding DataContext.IsEditingEnabled, RelativeSource={RelativeSource AncestorType=Window}}">
-<CheckBox x:Name="Video1AudioCheckBox" DockPanel.Dock="Right" Style="{StaticResource TimelineAudioIconCheckBox}" IsChecked="{Binding IncludeAudio}" IsEnabled="{Binding HasAudio}"/>
+                <ItemsControl x:Name="TimelineTrackNames" Grid.Row="1" ItemsSource="{Binding TimelineTracks}" Margin="0,0,6,0"
+                              IsEnabled="{Binding IsEditingEnabled}">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="1" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.Resources>
+                        <DataTemplate DataType="{x:Type vm:VideoTrackViewModel}">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="{StaticResource Icon.Close}" Style="{StaticResource MaterialIconButton}" Width="22" Height="22" MinHeight="22"
+                                        Click="TimelineTrackRemove_Click" ToolTip="이 영상 트랙 제거" AutomationProperties.Name="영상 트랙 제거"
+                                        IsEnabled="{Binding DataContext.IsEditingEnabled, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <CheckBox DockPanel.Dock="Right" Style="{StaticResource TimelineAudioIconCheckBox}" IsChecked="{Binding IncludeAudio}" IsEnabled="{Binding HasAudio}"/>
+                                <ContentControl DockPanel.Dock="Left" Content="{StaticResource Icon.OpenWith}" Style="{StaticResource MaterialIcon}" Width="14" Height="14" Margin="0,0,4,0"
+                                                Cursor="SizeNS" ToolTip="위아래로 끌어 레이어 순서 변경 (위가 앞)"
+                                                MouseLeftButtonDown="TimelineTrackReorder_MouseLeftButtonDown" MouseMove="TimelineTrackReorder_MouseMove" MouseLeftButtonUp="TimelineTrackReorder_MouseLeftButtonUp"/>
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,6,0" Cursor="Hand" MouseLeftButtonDown="TimelineVideoLabel_MouseLeftButtonDown"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="18" Height="18"/><TextBlock Text="{Binding Name}" FontSize="11" VerticalAlignment="Center" Margin="3,0,0,0"/></StackPanel>
+                                <TextBlock Text="{Binding DisplayName}" ToolTip="{Binding DisplayName}" TextTrimming="CharacterEllipsis" FontSize="11" VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonDown="TimelineVideoLabel_MouseLeftButtonDown"/>
+                            </DockPanel>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:AudioTrackViewModel}">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="{StaticResource Icon.Close}" Style="{StaticResource MaterialIconButton}" Width="22" Height="22" MinHeight="22"
+                                        Click="TimelineAudioRemove_Click" ToolTip="이 음원 트랙 제거" AutomationProperties.Name="음원 트랙 제거"
+                                        IsEnabled="{Binding DataContext.IsEditingEnabled, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <CheckBox x:Name="Mp3AudioCheckBox" DockPanel.Dock="Right" Style="{StaticResource TimelineAudioIconCheckBox}" IsChecked="{Binding IncludeAudio}" IsEnabled="{Binding HasMedia}"/>
+                                <Slider DockPanel.Dock="Right" Width="42" Margin="2,0,4,0" Minimum="0" Maximum="200" Value="{Binding VolumePercent}" ToolTip="MP3 볼륨 0~200%" AutomationProperties.Name="MP3 볼륨"/>
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,6,0"><ContentControl Content="{StaticResource Icon.MusicNote}" Style="{StaticResource MaterialIcon}" Width="18" Height="18"/></StackPanel>
+                                <TextBlock Text="{Binding DisplayName}" ToolTip="{Binding DisplayName}" TextTrimming="CharacterEllipsis" FontSize="11" VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </DataTemplate>
+                    </ItemsControl.Resources>
+                </ItemsControl>
 
-<StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,6,0" Cursor="Hand" MouseLeftButtonDown="TimelineVideoLabel_MouseLeftButtonDown"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="18" Height="18"/><TextBlock Text="1" FontSize="11" VerticalAlignment="Center" Margin="3,0,0,0"/></StackPanel>
-<TextBlock x:Name="Video1FileName" Text="{Binding DisplayName}" ToolTip="{Binding DisplayName}" TextTrimming="CharacterEllipsis" FontSize="11" VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonDown="TimelineVideoLabel_MouseLeftButtonDown"/></DockPanel>
-<DockPanel Grid.Row="2" DataContext="{Binding Video2}" Margin="0,0,6,0" IsEnabled="{Binding DataContext.IsEditingEnabled, RelativeSource={RelativeSource AncestorType=Window}}">
-<CheckBox x:Name="Video2AudioCheckBox" DockPanel.Dock="Right" Style="{StaticResource TimelineAudioIconCheckBox}" IsChecked="{Binding IncludeAudio}" IsEnabled="{Binding HasAudio}"/>
-
-<StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,6,0" Cursor="Hand" MouseLeftButtonDown="TimelineVideoLabel_MouseLeftButtonDown"><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="18" Height="18"/><TextBlock Text="2" FontSize="11" VerticalAlignment="Center" Margin="3,0,0,0"/></StackPanel>
-<TextBlock x:Name="Video2FileName" Text="{Binding DisplayName}" ToolTip="{Binding DisplayName}" TextTrimming="CharacterEllipsis" FontSize="11" VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonDown="TimelineVideoLabel_MouseLeftButtonDown"/></DockPanel>
-<DockPanel Grid.Row="3" DataContext="{Binding Audio}" Margin="0,0,6,0" IsEnabled="{Binding DataContext.IsEditingEnabled, RelativeSource={RelativeSource AncestorType=Window}}">
-<CheckBox x:Name="Mp3AudioCheckBox" DockPanel.Dock="Right" Style="{StaticResource TimelineAudioIconCheckBox}" IsChecked="{Binding IncludeAudio}" IsEnabled="{Binding HasMedia}"/>
-<Slider DockPanel.Dock="Right" Width="42" Margin="2,0,4,0" Minimum="0" Maximum="200" Value="{Binding VolumePercent}" ToolTip="MP3 볼륨 0~200%" AutomationProperties.Name="MP3 볼륨"/>
-<StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,6,0"><ContentControl Content="{StaticResource Icon.MusicNote}" Style="{StaticResource MaterialIcon}" Width="18" Height="18"/><TextBlock Text="" FontSize="11" VerticalAlignment="Center" Margin="3,0,0,0"/></StackPanel>
-<TextBlock x:Name="AudioFileName" Text="{Binding DisplayName}" ToolTip="{Binding DisplayName}" TextTrimming="CharacterEllipsis" FontSize="11" VerticalAlignment="Center"/></DockPanel>
-                <DockPanel Grid.Row="4" DataContext="{Binding Audio}" IsEnabled="{Binding DataContext.IsEditingEnabled, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,0,6,0">
-                    <ContentControl Content="{StaticResource Icon.MusicNote}" Style="{StaticResource MaterialIcon}" ToolTip="MP3 시작 시각 (초 · 0.001 단위)" Width="20" Height="20" Margin="0,0,8,0" />
-                    <TextBox x:Name="Mp3StartInput" Text="{Binding StartSeconds, StringFormat=F3, UpdateSourceTrigger=LostFocus}" ToolTip="MP3 시작 시각 (초 · 0.001 단위)" AutomationProperties.Name="MP3 시작 시각" IsEnabled="{Binding HasMedia}" />
-                </DockPanel>
-
-<Thumb x:Name="TimelineLabelSplitter" Grid.Column="1" Grid.RowSpan="6" Cursor="SizeWE" DragDelta="TimelineLabel_DragDelta" ToolTip="파일명 영역 너비 조절">
+<Thumb x:Name="TimelineLabelSplitter" Grid.Column="1" Grid.RowSpan="3" Cursor="SizeWE" DragDelta="TimelineLabel_DragDelta" ToolTip="파일명 영역 너비 조절">
 <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent"><Border Width="1" Background="{StaticResource HairlineBrush}" HorizontalAlignment="Center"/></Border></ControlTemplate></Thumb.Template></Thumb>
-<Grid x:Name="TimelineViewportHost" Grid.Column="2" Grid.RowSpan="5" ClipToBounds="True" SizeChanged="Timeline_SizeChanged">
+<Grid x:Name="TimelineViewportHost" Grid.Column="2" Grid.RowSpan="3" ClipToBounds="True" SizeChanged="Timeline_SizeChanged">
 <Grid x:Name="TimelineContent" HorizontalAlignment="Left">
 <Grid.RenderTransform><TranslateTransform x:Name="TimelineTranslation"/></Grid.RenderTransform>
-<Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="*"/><RowDefinition Height="*"/><RowDefinition Height="*"/><RowDefinition Height="32"/></Grid.RowDefinitions>
-<Canvas x:Name="TimelineVideo1" Grid.Row="1" Background="{StaticResource CanvasBrush}" ClipToBounds="True" IsEnabled="{Binding IsEditingEnabled}">
-                    <Border Height="{Binding ActualHeight, ElementName=TimelineVideo1, Converter={StaticResource ClipHeight}}" DataContext="{Binding Video1}" Style="{StaticResource VideoTimelineClip}" MouseLeftButtonDown="TimelineClip_MouseLeftButtonDown" MouseMove="TimelineClip_MouseMove" MouseLeftButtonUp="TimelineClip_MouseLeftButtonUp" LostMouseCapture="TimelineClip_LostMouseCapture">
-                        <Border.Width><MultiBinding Converter="{StaticResource TimelineWidth}"><Binding Path="DurationSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" ElementName="TimelineVideo1" /></MultiBinding></Border.Width>
-                        <Canvas.Left><MultiBinding Converter="{StaticResource TimelinePosition}"><Binding Path="StartSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" ElementName="TimelineVideo1" /></MultiBinding></Canvas.Left>
+<Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="*"/><RowDefinition Height="32"/></Grid.RowDefinitions>
+                <ItemsControl x:Name="TimelineTrackClips" Grid.Row="1" ItemsSource="{Binding TimelineTracks}" IsEnabled="{Binding IsEditingEnabled}">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="1" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.Resources>
+                        <DataTemplate DataType="{x:Type vm:VideoTrackViewModel}">
+                            <Canvas Background="{StaticResource CanvasBrush}" ClipToBounds="True">
+                                <Border Style="{StaticResource VideoTimelineClip}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}, Converter={StaticResource ClipHeight}}"
+                                        MouseLeftButtonDown="TimelineClip_MouseLeftButtonDown" MouseMove="TimelineClip_MouseMove" MouseLeftButtonUp="TimelineClip_MouseLeftButtonUp" LostMouseCapture="TimelineClip_LostMouseCapture">
+                                    <Border.Width><MultiBinding Converter="{StaticResource TimelineWidth}"><Binding Path="DurationSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Canvas}" /></MultiBinding></Border.Width>
+                                    <Canvas.Left><MultiBinding Converter="{StaticResource TimelinePosition}"><Binding Path="StartSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Canvas}" /></MultiBinding></Canvas.Left>
                         <Grid Margin="12,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="Video1StartLabel" Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            <StackPanel x:Name="Video1StartEditor" Orientation="Horizontal" Visibility="Collapsed" Margin="-4,0,0,0">
-                                <TextBox x:Name="Video1StartInput" Width="100" Text="{Binding StartSeconds, StringFormat=F3, Mode=OneWay}" PreviewKeyDown="InlineTimeInput_PreviewKeyDown" LostKeyboardFocus="InlineTimeInput_LostKeyboardFocus" Tag="Video1Start" ToolTip="영상 1 시작 시각" />
-                                <Button Content="{StaticResource Icon.Check}" Tag="Video1Start" Click="InlineTimeApply_Click" PreviewMouseDown="InlineTimeApply_PreviewMouseDown" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="시작 시각 적용" Margin="4,0,0,0" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </Canvas>
-<Canvas x:Name="TimelineVideo2" Grid.Row="2" Background="{StaticResource CanvasBrush}" ClipToBounds="True" IsEnabled="{Binding IsEditingEnabled}">
-                    <Border Height="{Binding ActualHeight, ElementName=TimelineVideo2, Converter={StaticResource ClipHeight}}" DataContext="{Binding Video2}" Style="{StaticResource VideoTimelineClip}" MouseLeftButtonDown="TimelineClip_MouseLeftButtonDown" MouseMove="TimelineClip_MouseMove" MouseLeftButtonUp="TimelineClip_MouseLeftButtonUp" LostMouseCapture="TimelineClip_LostMouseCapture">
-                        <Border.Width><MultiBinding Converter="{StaticResource TimelineWidth}"><Binding Path="DurationSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" ElementName="TimelineVideo2" /></MultiBinding></Border.Width>
-                        <Canvas.Left><MultiBinding Converter="{StaticResource TimelinePosition}"><Binding Path="StartSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" ElementName="TimelineVideo2" /></MultiBinding></Canvas.Left>
-                        <Grid Margin="12,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="Video2StartLabel" Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            <StackPanel x:Name="Video2StartEditor" Orientation="Horizontal" Visibility="Collapsed" Margin="-4,0,0,0">
-                                <TextBox x:Name="Video2StartInput" Width="100" Text="{Binding StartSeconds, StringFormat=F3, Mode=OneWay}" PreviewKeyDown="InlineTimeInput_PreviewKeyDown" LostKeyboardFocus="InlineTimeInput_LostKeyboardFocus" Tag="Video2Start" ToolTip="영상 2 시작 시각" />
-                                <Button Content="{StaticResource Icon.Check}" Tag="Video2Start" Click="InlineTimeApply_Click" PreviewMouseDown="InlineTimeApply_PreviewMouseDown" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="시작 시각 적용" Margin="4,0,0,0" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </Canvas>
-<Canvas x:Name="TimelineAudio" Grid.Row="3" Background="{StaticResource CanvasBrush}" ClipToBounds="True" IsEnabled="{Binding IsEditingEnabled}">
-                    <Border Height="{Binding ActualHeight, ElementName=TimelineAudio, Converter={StaticResource ClipHeight}}" DataContext="{Binding Audio}" Style="{StaticResource TimelineClip}" MouseLeftButtonDown="TimelineClip_MouseLeftButtonDown" MouseMove="TimelineClip_MouseMove" MouseLeftButtonUp="TimelineClip_MouseLeftButtonUp" LostMouseCapture="TimelineClip_LostMouseCapture">
-                        <Border.Width><MultiBinding Converter="{StaticResource TimelineWidth}"><Binding Path="DurationSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" ElementName="TimelineAudio" /></MultiBinding></Border.Width>
-                        <Canvas.Left><MultiBinding Converter="{StaticResource TimelinePosition}"><Binding Path="StartSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" ElementName="TimelineAudio" /></MultiBinding></Canvas.Left>
-                        <Grid Margin="12,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="AudioStartLabel" Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            <StackPanel x:Name="AudioStartEditor" Orientation="Horizontal" Visibility="Collapsed" Margin="-4,0,0,0">
-                                <TextBox x:Name="AudioStartInput" Width="100" Text="{Binding StartSeconds, StringFormat=F3, Mode=OneWay}" PreviewKeyDown="InlineTimeInput_PreviewKeyDown" LostKeyboardFocus="InlineTimeInput_LostKeyboardFocus" Tag="AudioStart" ToolTip="MP3 시작 시각" />
-                                <Button Content="{StaticResource Icon.Check}" Tag="AudioStart" Click="InlineTimeApply_Click" PreviewMouseDown="InlineTimeApply_PreviewMouseDown" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="시작 시각 적용" Margin="4,0,0,0" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </Canvas>
-<Slider x:Name="PlayheadSlider" Grid.Row="4" Minimum="0" Maximum="{Binding OutputDurationSeconds}" Value="{Binding PlayheadSeconds, Mode=TwoWay}" IsMoveToPointEnabled="True" IsEnabled="{Binding CanNavigate}"
+                                        <TextBlock Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                   Visibility="{Binding IsEditingStart, Converter={StaticResource InverseBoolToVisibility}}" />
+                                        <StackPanel Orientation="Horizontal" Margin="-4,0,0,0" Visibility="{Binding IsEditingStart, Converter={StaticResource BoolToVisibility}}">
+                                            <TextBox Width="100" Text="{Binding StartEditText, UpdateSourceTrigger=PropertyChanged}" ToolTip="{Binding Name, StringFormat={}{0} 시작 시각}"
+                                                     IsVisibleChanged="TrackStartInput_IsVisibleChanged" PreviewKeyDown="TrackStartInput_PreviewKeyDown" LostKeyboardFocus="TrackStartInput_LostKeyboardFocus" />
+                                            <Button Content="{StaticResource Icon.Check}" Click="TrackStartApply_Click" PreviewMouseDown="TrackStartApply_PreviewMouseDown" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="시작 시각 적용" Margin="4,0,0,0" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </Canvas>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:AudioTrackViewModel}">
+                            <Canvas x:Name="TimelineAudio" Background="{StaticResource CanvasBrush}" ClipToBounds="True">
+                                <Border Style="{StaticResource TimelineClip}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}, Converter={StaticResource ClipHeight}}"
+                                        MouseLeftButtonDown="TimelineClip_MouseLeftButtonDown" MouseMove="TimelineClip_MouseMove" MouseLeftButtonUp="TimelineClip_MouseLeftButtonUp" LostMouseCapture="TimelineClip_LostMouseCapture">
+                                    <Border.Width><MultiBinding Converter="{StaticResource TimelineWidth}"><Binding Path="DurationSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Canvas}" /></MultiBinding></Border.Width>
+                                    <Canvas.Left><MultiBinding Converter="{StaticResource TimelinePosition}"><Binding Path="StartSeconds" /><Binding Path="DataContext.OutputDurationSeconds" RelativeSource="{RelativeSource AncestorType=Window}" /><Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Canvas}" /></MultiBinding></Canvas.Left>
+                                    <Grid Margin="12,0" VerticalAlignment="Center">
+                                        <TextBlock Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                   Visibility="{Binding IsEditingStart, Converter={StaticResource InverseBoolToVisibility}}" />
+                                        <StackPanel Orientation="Horizontal" Margin="-4,0,0,0" Visibility="{Binding IsEditingStart, Converter={StaticResource BoolToVisibility}}">
+                                            <TextBox Width="100" Text="{Binding StartEditText, UpdateSourceTrigger=PropertyChanged}" ToolTip="MP3 시작 시각"
+                                                     IsVisibleChanged="TrackStartInput_IsVisibleChanged" PreviewKeyDown="TrackStartInput_PreviewKeyDown" LostKeyboardFocus="TrackStartInput_LostKeyboardFocus" />
+                                            <Button Content="{StaticResource Icon.Check}" Click="TrackStartApply_Click" PreviewMouseDown="TrackStartApply_PreviewMouseDown" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="시작 시각 적용" Margin="4,0,0,0" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </Canvas>
+                        </DataTemplate>
+                    </ItemsControl.Resources>
+                </ItemsControl>
+<Slider x:Name="PlayheadSlider" Grid.Row="2" Minimum="0" Maximum="{Binding OutputDurationSeconds}" Value="{Binding PlayheadSeconds, Mode=TwoWay}" IsMoveToPointEnabled="True" IsEnabled="{Binding CanNavigate}"
                         PreviewMouseDown="PlayheadSlider_PreviewMouseDown" PreviewMouseUp="PlayheadSlider_PreviewMouseUp" PreviewKeyDown="PlayheadSlider_PreviewKeyDown" PreviewKeyUp="PlayheadSlider_PreviewKeyUp" ValueChanged="PlayheadSlider_ValueChanged" Panel.ZIndex="50" AutomationProperties.Name="통합 영상 재생 위치">
 <Slider.Template><ControlTemplate TargetType="Slider"><Grid Background="Transparent"><Border Height="2" VerticalAlignment="Center" Background="{StaticResource HairlineBrush}"/>
 <Track x:Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}">
 <Track.Thumb><Thumb Width="0" Height="28"><Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent"/></ControlTemplate></Thumb.Template></Thumb></Track.Thumb>
 </Track></Grid></ControlTemplate></Slider.Template></Slider>
-<Slider x:Name="FullPlayheadSlider" Grid.Row="4" Minimum="0" Maximum="{Binding OutputDurationSeconds}" Value="{Binding FullPlayheadSeconds, Mode=TwoWay}" IsHitTestVisible="False" Panel.ZIndex="49">
+<Slider x:Name="FullPlayheadSlider" Grid.Row="2" Minimum="0" Maximum="{Binding OutputDurationSeconds}" Value="{Binding FullPlayheadSeconds, Mode=TwoWay}" IsHitTestVisible="False" Panel.ZIndex="49">
 <Slider.Template><ControlTemplate TargetType="Slider"><Track x:Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}"><Track.Thumb><Thumb Width="0" Height="0"/></Track.Thumb></Track></ControlTemplate></Slider.Template></Slider>
 </Grid>
 <controls:AxisRuler x:Name="TimelineRuler" Height="22" VerticalAlignment="Top" IsHitTestVisible="False"/>

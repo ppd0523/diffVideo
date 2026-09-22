@@ -29,37 +29,30 @@ public sealed partial class MainViewModel
     public void SetOverlapExportRange()
     {
         if (!CanEditExportRange) { return; }
-        var start = Math.Max(Video1.StartSeconds, Video2.StartSeconds);
-        var end = Math.Min(OutputDurationSeconds, Math.Min(
-            Video1.StartSeconds + Video1.DurationSeconds,
-            Video2.StartSeconds + Video2.DurationSeconds));
+        var start = Videos.Max(video => video.StartSeconds);
+        var end = Math.Min(OutputDurationSeconds, Videos.Min(video => video.StartSeconds + video.DurationSeconds));
         if (end <= start)
         {
-            Status = "두 영상이 겹치는 구간이 없어 내보내기 구간을 유지했습니다.";
+            Status = "모든 영상이 함께 겹치는 구간이 없어 내보내기 구간을 유지했습니다.";
             return;
         }
 
         ApplyExportRange(ExportRange.Normalize(start, end, OutputDurationSeconds, OutputFps));
-        Status = "두 영상이 겹치는 구간을 내보내기 구간으로 설정했습니다.";
+        Status = "모든 영상이 겹치는 구간을 내보내기 구간으로 설정했습니다.";
     }
 
     public void SetVideoExportRange()
     {
         if (!CanEditExportRange) { return; }
-        var requiredEnd = Math.Max(
-            Video1.StartSeconds + Video1.DurationSeconds,
-            Video2.StartSeconds + Video2.DurationSeconds);
+        var requiredEnd = Videos.Max(video => video.StartSeconds + video.DurationSeconds);
         if (requiredEnd > OutputDurationSeconds)
         {
             OutputDurationSeconds = requiredEnd;
         }
 
-        var start = Math.Min(Video1.StartSeconds, Video2.StartSeconds);
-        var end = Math.Max(
-            Video1.StartSeconds + Video1.DurationSeconds,
-            Video2.StartSeconds + Video2.DurationSeconds);
-        ApplyExportRange(ExportRange.Normalize(start, end, OutputDurationSeconds, OutputFps));
-        Status = "두 영상의 전체 구간을 내보내기 구간으로 설정했습니다.";
+        ApplyExportRange(ExportRange.Normalize(
+            Videos.Min(video => video.StartSeconds), requiredEnd, OutputDurationSeconds, OutputFps));
+        Status = "모든 영상의 전체 구간을 내보내기 구간으로 설정했습니다.";
     }
 
     internal void ApplyExportRange(ExportRange range)

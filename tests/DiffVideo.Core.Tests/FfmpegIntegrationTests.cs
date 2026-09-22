@@ -24,9 +24,11 @@ public sealed class FfmpegIntegrationTests
             var media = await probe.ProbeAsync(sourcePath);
             var audio = await probe.ProbeAsync(audioPath);
             var composition = new Composition(
-                new(media, TimeSpan.Zero, PixelRect.FullFrame(media), new(0, 0, 160, 90), VideoFitMode.Stretch, false, 0, false, 1),
-                new(media, TimeSpan.FromSeconds(0.5), PixelRect.FullFrame(media), new(-160, 0, 160, 90), VideoFitMode.Stretch, false, 1, false, 1),
-                new(audio, TimeSpan.FromSeconds(1.5), true, 1),
+                [
+                    new(media, TimeSpan.Zero, PixelRect.FullFrame(media), new(0, 0, 160, 90), VideoFitMode.Stretch, false, 0, false, 1),
+                    new(media, TimeSpan.FromSeconds(0.5), PixelRect.FullFrame(media), new(-160, 0, 160, 90), VideoFitMode.Stretch, false, 1, false, 1)
+                ],
+                [new(audio, TimeSpan.FromSeconds(1.5), true, 1)],
                 new(160, 90, 30, TimeSpan.FromSeconds(3), OutputQuality.Balanced)
                 { ExportStart = TimeSpan.FromSeconds(1), ExportEnd = TimeSpan.FromSeconds(2) });
             var outputPath = Path.Combine(temp, "range.mp4");
@@ -81,9 +83,11 @@ public sealed class FfmpegIntegrationTests
             var media2 = await probe.ProbeAsync(video2Path);
             var music = await probe.ProbeAsync(mp3Path);
             var composition = new Composition(
-                new(media1, TimeSpan.Zero, PixelRect.FullFrame(media1), new(0, 0, 320, 360), VideoFitMode.Fit, true, 0, true, 1),
-                new(media2, TimeSpan.FromSeconds(1), PixelRect.FullFrame(media2), new(320, 0, 320, 360), VideoFitMode.Fill, true, 1, true, 1),
-                new(music, TimeSpan.FromSeconds(0.5), true, 0.3),
+                [
+                    new(media1, TimeSpan.Zero, PixelRect.FullFrame(media1), new(0, 0, 320, 360), VideoFitMode.Fit, true, 0, true, 1),
+                    new(media2, TimeSpan.FromSeconds(1), PixelRect.FullFrame(media2), new(320, 0, 320, 360), VideoFitMode.Fill, true, 1, true, 1)
+                ],
+                [new(music, TimeSpan.FromSeconds(0.5), true, 0.3)],
                 new(640, 360, 30, TimeSpan.FromSeconds(5), OutputQuality.Balanced));
 
             var outputPath = Path.Combine(temp, "merged.mp4");
@@ -99,12 +103,10 @@ public sealed class FfmpegIntegrationTests
 
             // Red extends beyond the upper-left; green extends beyond the lower-right.
             // Export must clip the rectangles instead of rejecting or moving them.
-            var clippedComposition = composition with
-            {
-                Video1 = composition.Video1 with { Destination = new(-160, -180, 320, 360), FitMode = VideoFitMode.Stretch },
-                Video2 = composition.Video2 with { Destination = new(480, 180, 320, 360), FitMode = VideoFitMode.Stretch },
-                Output = composition.Output with { Duration = TimeSpan.FromSeconds(1) }
-            };
+            var clippedComposition = composition
+                .WithVideo(0, composition.Videos[0] with { Destination = new(-160, -180, 320, 360), FitMode = VideoFitMode.Stretch })
+                .WithVideo(1, composition.Videos[1] with { Destination = new(480, 180, 320, 360), FitMode = VideoFitMode.Stretch })
+                with { Output = composition.Output with { Duration = TimeSpan.FromSeconds(1) } };
             var clippedPath = Path.Combine(temp, "clipped.mp4");
             await new FfmpegExportService(paths).ExportAsync(clippedComposition, clippedPath);
             var pixelsPath = Path.Combine(temp, "clipped.rgb");
@@ -150,9 +152,11 @@ public sealed class FfmpegIntegrationTests
             var one = await probe.ProbeAsync(onePath);
             var two = await probe.ProbeAsync(twoPath);
             var composition = new Composition(
-                new(one, TimeSpan.FromSeconds(1), PixelRect.FullFrame(one), new(0, 0, 320, 180), VideoFitMode.Fit, true, 0, true, 1),
-                new(two, TimeSpan.Zero, PixelRect.FullFrame(two), new(320, 0, 320, 180), VideoFitMode.Fit, true, 1, false, 1),
-                null,
+                [
+                    new(one, TimeSpan.FromSeconds(1), PixelRect.FullFrame(one), new(0, 0, 320, 180), VideoFitMode.Fit, true, 0, true, 1),
+                    new(two, TimeSpan.Zero, PixelRect.FullFrame(two), new(320, 0, 320, 180), VideoFitMode.Fit, true, 1, false, 1)
+                ],
+                [],
                 new(640, 180, 30, TimeSpan.FromSeconds(3), OutputQuality.Small));
 
             var outputPath = Path.Combine(temp, "timed-output.mp4");
@@ -197,9 +201,11 @@ public sealed class FfmpegIntegrationTests
             var one = await probe.ProbeAsync(onePath);
             var two = await probe.ProbeAsync(twoPath);
             var composition = new Composition(
-                new(one, TimeSpan.Zero, PixelRect.FullFrame(one), new(0, 0, 960, 1080), VideoFitMode.Fill, true, 0, false, 1),
-                new(two, TimeSpan.Zero, PixelRect.FullFrame(two), new(960, 0, 960, 1080), VideoFitMode.Fill, true, 1, false, 1),
-                null,
+                [
+                    new(one, TimeSpan.Zero, PixelRect.FullFrame(one), new(0, 0, 960, 1080), VideoFitMode.Fill, true, 0, false, 1),
+                    new(two, TimeSpan.Zero, PixelRect.FullFrame(two), new(960, 0, 960, 1080), VideoFitMode.Fill, true, 1, false, 1)
+                ],
+                [],
                 new(1920, 1080, 60, TimeSpan.FromSeconds(60), OutputQuality.High));
 
             var outputPath = Path.Combine(temp, "cancelled.mp4");
@@ -244,9 +250,11 @@ public sealed class FfmpegIntegrationTests
             var one = await probe.ProbeAsync(onePath);
             var two = await probe.ProbeAsync(twoPath);
             var composition = new Composition(
-                new(one, TimeSpan.Zero, PixelRect.FullFrame(one), new(0, 0, 960, 1080), VideoFitMode.Fill, true, 0, true, 1),
-                new(two, TimeSpan.FromSeconds(1), PixelRect.FullFrame(two), new(960, 0, 960, 1080), VideoFitMode.Fill, true, 1, true, 1),
-                null,
+                [
+                    new(one, TimeSpan.Zero, PixelRect.FullFrame(one), new(0, 0, 960, 1080), VideoFitMode.Fill, true, 0, true, 1),
+                    new(two, TimeSpan.FromSeconds(1), PixelRect.FullFrame(two), new(960, 0, 960, 1080), VideoFitMode.Fill, true, 1, true, 1)
+                ],
+                [],
                 new(1920, 1080, 30, TimeSpan.FromMinutes(10), OutputQuality.Small));
 
             for (var attempt = 1; attempt <= 2; attempt++)
@@ -259,6 +267,147 @@ public sealed class FfmpegIntegrationTests
                 Assert.InRange(output.Duration.TotalSeconds, 599.95, 600.05);
                 File.Delete(outputPath);
             }
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+            {
+                Directory.Delete(temp, recursive: true);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(4)]
+    public async Task Export_PlacesEveryVideoOfAnArbitraryCount(int videoCount)
+    {
+        var ffmpegBin = Environment.GetEnvironmentVariable("DIFFVIDEO_FFMPEG_BIN");
+        if (string.IsNullOrWhiteSpace(ffmpegBin))
+        {
+            return;
+        }
+
+        var paths = new FfmpegPaths(Path.Combine(ffmpegBin, "ffmpeg.exe"), Path.Combine(ffmpegBin, "ffprobe.exe"));
+        var temp = Path.Combine(Path.GetTempPath(), "DiffVideo.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(temp);
+        try
+        {
+            // One quadrant per video. With three videos the fourth quadrant must stay black,
+            // which also proves the canvas base survives an odd track count.
+            string[] colours = ["red", "green", "blue", "white"];
+            (int X, int Y)[] cells = [(0, 0), (320, 0), (0, 180), (320, 180)];
+            var probe = new MediaProbeService(paths);
+            var tracks = new List<VideoTrack>();
+            for (var index = 0; index < videoCount; index++)
+            {
+                var sourcePath = Path.Combine(temp, $"source-{index}.mp4");
+                await RunAsync(paths.Ffmpeg, [
+                    "-y", "-f", "lavfi", "-i", $"color=c={colours[index]}:size=320x180:rate=30:d=2",
+                    "-f", "lavfi", "-i", $"sine=frequency={220 * (index + 1)}:duration=2",
+                    "-c:v", "mpeg4", "-q:v", "3", "-c:a", "aac", "-shortest", sourcePath]);
+                var media = await probe.ProbeAsync(sourcePath);
+                var cell = cells[index];
+                tracks.Add(new(media, TimeSpan.Zero, PixelRect.FullFrame(media),
+                    new(cell.X, cell.Y, 320, 180), VideoFitMode.Stretch, false, index, true, 1));
+            }
+
+            var composition = new Composition(tracks, [],
+                new(640, 360, 30, TimeSpan.FromSeconds(2), OutputQuality.Balanced));
+            var outputPath = Path.Combine(temp, "merged.mp4");
+            await new FfmpegExportService(paths).ExportAsync(composition, outputPath);
+
+            var output = await probe.ProbeAsync(outputPath);
+            Assert.Equal("h264", output.Codec);
+            Assert.Equal("aac", output.AudioCodec);
+            Assert.InRange(output.Duration.TotalSeconds, 1.95, 2.05);
+
+            var pixelsPath = Path.Combine(temp, "merged.rgb");
+            await RunAsync(paths.Ffmpeg, ["-y", "-i", outputPath, "-frames:v", "1", "-pix_fmt", "rgb24", "-f", "rawvideo", pixelsPath]);
+            var pixels = await File.ReadAllBytesAsync(pixelsPath);
+            Assert.Equal(640 * 360 * 3, pixels.Length);
+
+            for (var index = 0; index < cells.Length; index++)
+            {
+                // Sample each quadrant's centre, far from the chroma-subsampled seams.
+                var offset = ((cells[index].Y + 90) * 640 + cells[index].X + 160) * 3;
+                int r = pixels[offset], g = pixels[offset + 1], b = pixels[offset + 2];
+                if (index >= videoCount)
+                {
+                    Assert.True(r < 40 && g < 40 && b < 40, $"Quadrant {index} holds no video, saw {r},{g},{b}");
+                    continue;
+                }
+
+                var matches = colours[index] switch
+                {
+                    "red" => r > 150 && g < 90 && b < 90,
+                    "green" => g > 100 && r < 90 && b < 90,
+                    "blue" => b > 150 && r < 90 && g < 90,
+                    _ => r > 180 && g > 180 && b > 180
+                };
+                Assert.True(matches, $"Quadrant {index} must show {colours[index]}, saw {r},{g},{b}");
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(temp))
+            {
+                Directory.Delete(temp, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Export_NormalisesTheMixSoExtraSourcesDoNotPileUp()
+    {
+        var ffmpegBin = Environment.GetEnvironmentVariable("DIFFVIDEO_FFMPEG_BIN");
+        if (string.IsNullOrWhiteSpace(ffmpegBin))
+        {
+            return;
+        }
+
+        var paths = new FfmpegPaths(Path.Combine(ffmpegBin, "ffmpeg.exe"), Path.Combine(ffmpegBin, "ffprobe.exe"));
+        var temp = Path.Combine(Path.GetTempPath(), "DiffVideo.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(temp);
+        try
+        {
+            var videoPath = Path.Combine(temp, "silent.mp4");
+            var tonePath = Path.Combine(temp, "tone.mp3");
+            await RunAsync(paths.Ffmpeg, ["-y", "-f", "lavfi", "-i", "color=c=gray:size=320x180:rate=30:d=2", "-c:v", "mpeg4", "-q:v", "3", videoPath]);
+            await RunAsync(paths.Ffmpeg, ["-y", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2", "-c:a", "libmp3lame", "-q:a", "2", tonePath]);
+
+            var probe = new MediaProbeService(paths);
+            var video = await probe.ProbeAsync(videoPath);
+            var tone = await probe.ProbeAsync(tonePath);
+            VideoTrack picture = new(video, TimeSpan.Zero, PixelRect.FullFrame(video), new(0, 0, 320, 180),
+                VideoFitMode.Stretch, false, 0, false, 1);
+            OutputSettings output = new(320, 180, 30, TimeSpan.FromSeconds(2), OutputQuality.High);
+
+            async Task<int> PeakAsync(int toneCount, string name)
+            {
+                var audios = Enumerable.Range(0, toneCount)
+                    .Select(_ => new AudioTrack(tone, TimeSpan.Zero, true, 1)).ToArray();
+                var outputPath = Path.Combine(temp, name + ".mp4");
+                await new FfmpegExportService(paths).ExportAsync(new Composition([picture], audios, output), outputPath);
+                var pcmPath = Path.Combine(temp, name + ".pcm");
+                await RunAsync(paths.Ffmpeg, ["-y", "-i", outputPath, "-vn", "-ar", "48000", "-ac", "1", "-f", "s16le", pcmPath]);
+                var pcm = await File.ReadAllBytesAsync(pcmPath);
+                var peak = 0;
+                for (var index = 0; index + 1 < pcm.Length; index += 2)
+                {
+                    peak = Math.Max(peak, Math.Abs((int)BitConverter.ToInt16(pcm, index)));
+                }
+
+                return peak;
+            }
+
+            var onePeak = await PeakAsync(1, "one-tone");
+            var threePeak = await PeakAsync(3, "three-tones");
+            Assert.True(onePeak > 3000, $"The single-source export must actually carry the tone, saw {onePeak}");
+
+            // Three copies of the same tone each take a third of the mix, so the sum matches one
+            // source at full scale instead of tripling into the limiter.
+            Assert.InRange(threePeak, onePeak * 0.8, onePeak * 1.2);
         }
         finally
         {

@@ -13,22 +13,31 @@ public static class CompositionValidator
     {
         var issues = new List<ValidationIssue>();
         ValidateOutput(composition.Output, issues);
-        ValidateVideo(composition.Video1, "VIDEO_1", composition.Output, issues);
-        ValidateVideo(composition.Video2, "VIDEO_2", composition.Output, issues);
-
-        if (composition.ExtraAudio is { } audio)
+        if (composition.Videos.Count == 0 && composition.Audios.Count == 0)
         {
+            issues.Add(new("COMPOSITION_EMPTY", "합성하려면 미디어가 최소 한 개 필요합니다."));
+        }
+
+        for (var index = 0; index < composition.Videos.Count; index++)
+        {
+            ValidateVideo(composition.Videos[index], $"VIDEO_{index + 1}", issues);
+        }
+
+        for (var index = 0; index < composition.Audios.Count; index++)
+        {
+            var audio = composition.Audios[index];
+            var prefix = $"AUDIO_{index + 1}";
             if (audio.Media.Kind != MediaKind.Audio)
             {
-                issues.Add(new("MP3_KIND", "추가 음원에는 MP3 오디오 파일만 사용할 수 있습니다."));
+                issues.Add(new($"{prefix}_KIND", "음원 트랙에는 MP3 오디오 파일만 사용할 수 있습니다."));
             }
 
             if (audio.Start < TimeSpan.Zero)
             {
-                issues.Add(new("MP3_START", "MP3 시작 시각은 0초 이상이어야 합니다."));
+                issues.Add(new($"{prefix}_START", "음원 시작 시각은 0초 이상이어야 합니다."));
             }
 
-            ValidateVolume(audio.Volume, "MP3_VOLUME", issues);
+            ValidateVolume(audio.Volume, $"{prefix}_VOLUME", issues);
         }
 
         return issues;
@@ -73,7 +82,7 @@ public static class CompositionValidator
         }
     }
 
-    private static void ValidateVideo(VideoTrack track, string prefix, OutputSettings output, ICollection<ValidationIssue> issues)
+    private static void ValidateVideo(VideoTrack track, string prefix, ICollection<ValidationIssue> issues)
     {
         if (track.Media.Kind != MediaKind.Video)
         {

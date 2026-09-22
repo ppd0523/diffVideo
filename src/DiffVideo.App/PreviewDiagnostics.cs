@@ -16,11 +16,54 @@ namespace DiffVideo.App;
 /// <summary>Explicit, opt-in local diagnostics; not used by normal editing or export.</summary>
 internal static partial class PreviewDiagnostics
 {
+    /// <summary>
+    /// Command line for the harness. Videos are a list rather than a fixed pair, so the same
+    /// modes can be run against any track count.
+    /// </summary>
+    internal sealed record DiagnosticsOptions(string Mode, string[] Videos, string? Audio, string Report, int Seconds)
+    {
+        /// <summary>Every media path, in the order the editor would load them.</summary>
+        public string[] Files => Audio is null ? Videos : [.. Videos, Audio];
+
+        public static DiagnosticsOptions Parse(string[] args)
+        {
+            const string usage = "--preview-diagnostics <mode> --videos a.mp4[,b.mp4,...] [--audio x.mp3] --report report.json [--seconds N]";
+            if (args.Length < 2) { throw new ArgumentException(usage); }
+            string[] videos = [];
+            string? audio = null;
+            string? report = null;
+            var seconds = 0;
+            for (var index = 2; index < args.Length - 1; index += 2)
+            {
+                switch (args[index])
+                {
+                    case "--videos":
+                        videos = args[index + 1].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                        break;
+                    case "--audio":
+                        audio = args[index + 1].Length == 0 ? null : Path.GetFullPath(args[index + 1]);
+                        break;
+                    case "--report":
+                        report = Path.GetFullPath(args[index + 1]);
+                        break;
+                    case "--seconds":
+                        seconds = int.Parse(args[index + 1], System.Globalization.CultureInfo.InvariantCulture);
+                        break;
+                    default:
+                        throw new ArgumentException($"알 수 없는 인자 {args[index]}. {usage}");
+                }
+            }
+
+            if (videos.Length == 0 || report is null) { throw new ArgumentException(usage); }
+            return new(args[1], [.. videos.Select(Path.GetFullPath)], audio, report, seconds);
+        }
+    }
+
     public static void Start(string[] args)
     {
-        if (args.Length != 7) { throw new ArgumentException("--preview-diagnostics mode video1 video2 mp3 report.json seconds"); }
-        var mode = args[1];
-        var report = Path.GetFullPath(args[5]);
+        var options = DiagnosticsOptions.Parse(args);
+        var mode = options.Mode;
+        var report = options.Report;
         Directory.CreateDirectory(Path.GetDirectoryName(report)!);
         UserSettingsStore? settingsStore = null;
         if (mode == "settings")
@@ -49,15 +92,15 @@ internal static partial class PreviewDiagnostics
         {
             try
             {
-                if (mode == "checks") { await CheckAsync((MainWindow)window, args[2..5], report); }
-                else if (mode == "ui") { await CheckUiAsync((MainWindow)window, args[2..5], report); }
-                else if (mode == "features") { await CheckFeaturesAsync((MainWindow)window, args[2..5], report); }
-                else if (mode == "roi") { await CheckRoiEditorAsync((MainWindow)window, args[2..5], report); }
-                else if (mode == "placement") { await CheckPlacementAsync((MainWindow)window, args[2..5], report); }
-                else if (mode == "export-range") { await CheckExportRangeAsync((MainWindow)window, args[2..5], report); }
-                else if (mode == "layers") { await CheckLayersAsync((MainWindow)window, args[2..5], report); }
+                if (mode == "checks") { await CheckAsync((MainWindow)window, options.Files, report); }
+                else if (mode == "ui") { await CheckUiAsync((MainWindow)window, options.Files, report); }
+                else if (mode == "features") { await CheckFeaturesAsync((MainWindow)window, options.Files, report); }
+                else if (mode == "roi") { await CheckRoiEditorAsync((MainWindow)window, options.Files, report); }
+                else if (mode == "placement") { await CheckPlacementAsync((MainWindow)window, options.Files, report); }
+                else if (mode == "export-range") { await CheckExportRangeAsync((MainWindow)window, options.Files, report); }
+                else if (mode == "layers") { await CheckLayersAsync((MainWindow)window, options.Files, report); }
                 else if (mode == "settings") { await CheckSettingsAsync((MainWindow)window, settingsStore!, report); }
-                else { await MeasureAsync(window, mode, args[2..5], report, int.Parse(args[6], System.Globalization.CultureInfo.InvariantCulture)); }
+                else { await MeasureAsync(window, mode, options, report, options.Seconds); }
                 window.Close();
             }
             catch (Exception exception)
@@ -69,17 +112,23 @@ internal static partial class PreviewDiagnostics
         window.Show();
     }
 
-    private static async Task MeasureAsync(Window window, string mode, string[] files, string report, int seconds)
+    private static async Task MeasureAsync(Window window, string mode, DiagnosticsOptions options, string report, int seconds)
     {
         var paths = FfmpegPaths.Discover();
         var probe = new MediaProbeService(paths);
-        var one = await probe.ProbeAsync(files[0]);
-        var two = await probe.ProbeAsync(files[1]);
-        var music = await probe.ProbeAsync(files[2]);
+        var tracks = new List<VideoTrack>();
+        for (var index = 0; index < options.Videos.Length; index++)
+        {
+            var media = await probe.ProbeAsync(options.Videos[index]);
+            // Staggered starts keep the measurement honest about tracks entering mid-playback.
+            tracks.Add(new(media, TimeSpan.FromSeconds(index), PixelRect.FullFrame(media),
+                GridLayout.Cell(index, options.Videos.Length, 1920, 1080), VideoFitMode.Fill, false, index, true, 1));
+        }
+
+        var music = options.Audio is null ? null : await probe.ProbeAsync(options.Audio);
         var composition = new Composition(
-            new(one, TimeSpan.Zero, PixelRect.FullFrame(one), new(0, 0, 960, 1080), VideoFitMode.Fill, false, 0, true, 1),
-            new(two, TimeSpan.FromSeconds(1), PixelRect.FullFrame(two), new(960, 0, 960, 1080), VideoFitMode.Fill, false, 1, true, 1),
-            new(music, TimeSpan.FromSeconds(0.123), true, 0.3),
+            tracks,
+            music is null ? [] : [new AudioTrack(music, TimeSpan.FromSeconds(0.123), true, 0.3)],
             new(1920, 1080, 30, TimeSpan.FromSeconds(seconds + 15), OutputQuality.Balanced));
         var image = new Image { Stretch = Stretch.Uniform };
         window.Content = image;
@@ -146,7 +195,7 @@ internal static partial class PreviewDiagnostics
         var checks = new List<string>();
         var vm = window.ViewModel!;
         await vm.LoadFilesAsync(files);
-        var replacement = vm.Video1;
+        var replacement = vm.Videos[0];
         replacement.SetDestination(new(24, 36, 800, 600));
         replacement.StartSeconds = 2;
         replacement.SetRoi(new(2, 2, replacement.RoiWidth - 2, replacement.RoiHeight - 2));
@@ -166,9 +215,9 @@ internal static partial class PreviewDiagnostics
         checks.Add("Video replacement preserves placement/layer and resets edits");
         replacement.SetDestination(new(0, 0, vm.CanvasWidth / 2, vm.CanvasHeight));
         vm.OutputDurationSeconds = 12;
-        vm.Video2.StartSeconds = 1.234;
-        vm.Audio.StartSeconds = 0.1236;
-        Assert(Math.Abs(vm.Audio.StartSeconds - 0.124) < 0.000001, "MP3 1ms snapping");
+        vm.Videos[1].StartSeconds = 1.234;
+        vm.Audios[0].StartSeconds = 0.1236;
+        Assert(Math.Abs(vm.Audios[0].StartSeconds - 0.124) < 0.000001, "MP3 1ms snapping");
         checks.Add("MP3 1ms snapping");
         vm.PlayheadSeconds = 3;
         vm.FullPlayheadSeconds = 8;
@@ -197,15 +246,15 @@ internal static partial class PreviewDiagnostics
         await vm.StopFullPlaybackAsync();
         checks.AddRange(["Loading indication", "Individual playback progresses", "Editing locks / export remains enabled", "Pause", "Frame step", "Segment stop", "Independent full playback"]);
 
-        var before = vm.Video1.StartSeconds;
+        var before = vm.Videos[0].StartSeconds;
         vm.BeginTimelineInteraction();
-        vm.RequestTimelineDragPreview(vm.Video1, 1.6);
+        vm.RequestTimelineDragPreview(vm.Videos[0], 1.6);
         await Task.Delay(350);
-        Assert(vm.Video1.StartSeconds == before, "Drag must not commit");
+        Assert(vm.Videos[0].StartSeconds == before, "Drag must not commit");
         vm.CancelTimelineDragPreview();
         await vm.RefreshStillPreviewAsync();
-        await vm.CommitTimelineTrackStartAsync(vm.Video1, 1.6);
-        Assert(Math.Abs(vm.Video1.StartSeconds - 1.6) < 0.00001, "Drop commit");
+        await vm.CommitTimelineTrackStartAsync(vm.Videos[0], 1.6);
+        Assert(Math.Abs(vm.Videos[0].StartSeconds - 1.6) < 0.00001, "Drop commit");
         Assert(vm.CurrentPlaybackState == PlaybackState.Stopped, "Drag preserves transport state");
         checks.AddRange(["Staged drag", "Cancel restores preview", "Drop commits once / keeps transport state"]);
 
@@ -221,7 +270,7 @@ internal static partial class PreviewDiagnostics
         var export = vm.ExportAsync(output, overwrite: true);
         Assert(vm.IsPlaying, "Export must not pause playback");
         await vm.PausePlaybackAsync();
-        vm.Video1.StartSeconds = 0.5;
+        vm.Videos[0].StartSeconds = 0.5;
         Assert(vm.IsEditingEnabled, "Export must not lock editing");
         vm.CancelExport();
         await export;
@@ -280,11 +329,11 @@ internal static partial class PreviewDiagnostics
             Assert(window.CanAcceptPreviewDrop(drop), "Preview accepts MP4 / MP3 files");
             Assert(!window.CanAcceptPreviewDrop(new DataObject(DataFormats.FileDrop, new[] { "unsupported.txt" })), "Unsupported drops rejected");
             await window.ImportPreviewDropAsync(drop);
-            Assert(vm.HasComposition && vm.Audio.HasMedia, "Preview drop loads both videos and MP3");
+            Assert(vm.HasComposition && vm.Audios[0].HasMedia, "Preview drop loads both videos and MP3");
             checks.Add("Preview-only file drop / unsupported-file filtering");
             vm.OutputDurationSeconds = 95;
-            vm.Video2.StartSeconds = 5;
-            vm.Audio.StartSeconds = 0.124;
+            vm.Videos[1].StartSeconds = 5;
+            vm.Audios[0].StartSeconds = 0.124;
             vm.PlayheadSeconds = 12;
             Assert(MainViewModel.TryParseDurationSeconds("95", out var secondsOnly) && secondsOnly == 95 &&
                 MainViewModel.TryParseDurationSeconds("95.5", out var decimalSeconds) && decimalSeconds == 95.5 &&
@@ -309,11 +358,11 @@ internal static partial class PreviewDiagnostics
             }
             checks.Add("Material action icons / accessible names / tooltips / hit targets");
 
-            AssertIconToggle(window.Video1AudioCheckBox, "Icon.VolumeUp", "Icon.VolumeOff");
-            AssertIconToggle(window.Mp3AudioCheckBox, "Icon.VolumeUp", "Icon.VolumeOff");
+            AssertIconToggle(window.TrackAudioToggle(0)!, "Icon.VolumeUp", "Icon.VolumeOff");
+            AssertIconToggle(window.TrackAudioToggle(window.AudioRowIndex)!, "Icon.VolumeUp", "Icon.VolumeOff");
             AssertIconToggle(window.InspectorAudioCheckBox, "Icon.VolumeUp", "Icon.VolumeOff");
             AssertIconToggle(window.AspectLockCheckBox, "Icon.Lock", "Icon.LockOpen");
-            Assert(vm.Video1.IncludeAudio && vm.Audio.IncludeAudio && vm.SelectedVideo.IncludeAudio && vm.SelectedVideo.AspectRatioLocked, "Icon toggle bindings restored");
+            Assert(vm.Videos[0].IncludeAudio && vm.Audios[0].IncludeAudio && vm.SelectedVideo is { IncludeAudio: true, AspectRatioLocked: true }, "Icon toggle bindings restored");
             checks.Add("Audio / mute and aspect-lock icons follow checked state");
 
             Assert(window.PlayButton.IsEnabled && window.ExportButton.IsEnabled, "Loaded state controls");
@@ -337,8 +386,8 @@ internal static partial class PreviewDiagnostics
             Assert(window.OutputDurationInput.Padding == new Thickness(3.6, 2.4, 3.6, 2.4), $"Inputs use compact padding: {window.OutputDurationInput.Padding}");
             window.OutputDurationInput.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window.OutputDurationInput), Environment.TickCount, Key.Escape) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
             Assert(window.OutputDurationLabel.Visibility == Visibility.Visible && window.OutputDurationEditor.Visibility == Visibility.Collapsed, "Escape cancels inline duration editing");
-            Assert(window.Video1AudioCheckBox.Width == 18 && window.Video1AudioCheckBox.Height == 18 && window.Video1AudioCheckBox.ActualHeight <= 18, "Timeline audio icon fits inside its row");
-            Assert(window.Video1AudioCheckBox.Template.FindName("Glyph", window.Video1AudioCheckBox) is ContentControl { ActualWidth: > 13, ActualHeight: > 13 }, "Timeline audio glyph scales to show the complete icon");
+            Assert(window.TrackAudioToggle(0)!.Width == 18 && window.TrackAudioToggle(0)!.Height == 18 && window.TrackAudioToggle(0)!.ActualHeight <= 18, "Timeline audio icon fits inside its row");
+            Assert(window.TrackAudioToggle(0)!.Template.FindName("Glyph", window.TrackAudioToggle(0)!) is ContentControl { ActualWidth: > 13, ActualHeight: > 13 }, "Timeline audio glyph scales to show the complete icon");
             Assert(window.PlayButton.Width == 42 && window.PlayButton.Height == 30 && window.FullPlayButton.Width == 42 && window.FullPlayButton.Height == 30, "Both transport bars use 42 by 30 controls");
             Assert(window.ZoomOutButton.Width == 30 && window.ZoomOutButton.Height == 30 && window.FitTimelineButton.Width == 30 && window.FitTimelineButton.Height == 30, "Timeline view controls use 30 by 30 sizing");
             Assert(window.ExportButton.Width == 84 && window.ExportButton.Height == 30 && window.SelectedVideoFileButton.Height == 30 && window.SelectedVideoFileButton.Padding == new Thickness(3.6, 2.4, 3.6, 2.4), "Wide export and file picker controls match the requested sizing");
@@ -359,42 +408,44 @@ internal static partial class PreviewDiagnostics
                 window.VideoSettingsTab.Margin.Left + window.VideoSettingsTab.Margin.Right <= window.SettingsTabs.ActualWidth + 1,
                 "Settings tab headers fit without clipping");
             Assert(window.TransportBar.IsAncestorOf(window.ExportButton) && window.TransportBar.IsAncestorOf(window.CancelExportButton), "Export and cancel actions are in the segment transport bar");
-            var beganVideoStartEdit = window.BeginTimelineStartEdit(vm.Video1);
-            Assert(beganVideoStartEdit && window.Video1StartEditor.Visibility == Visibility.Visible && window.Video1StartInput.Width == 100 && window.Video1StartEditor.Margin.Left == -4,
-                $"Video block double-click editor uses shared inline sizing and offset: began={beganVideoStartEdit}, visibility={window.Video1StartEditor.Visibility}, width={window.Video1StartInput.Width}, margin={window.Video1StartEditor.Margin.Left}");
-            window.Video1StartInput.Text = "2.5";
-            window.Video1StartInput.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window.Video1StartInput), Environment.TickCount, Key.Enter) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
-            await WaitAsync(() => Math.Abs(vm.Video1.StartSeconds - 2.5) < 0.00001, () => vm.ErrorMessage);
-            Assert(window.Video1StartLabel.Visibility == Visibility.Visible && window.Video1StartLabel.FontSize == 13 && window.Video1StartLabel.FontWeight == FontWeights.SemiBold, "Block start edit commits and restores the larger centered label");
-            await vm.CommitTimelineTrackStartAsync(vm.Video1, 0);
-            Assert(window.BeginTimelineStartEdit(vm.Audio) && window.AudioStartEditor.Visibility == Visibility.Visible, "MP3 block supports the same start editor");
-            window.AudioStartInput.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window.AudioStartInput), Environment.TickCount, Key.Escape) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
-            Assert(window.AudioStartLabel.Visibility == Visibility.Visible, "MP3 start edit cancels back to its label");
+            var beganVideoStartEdit = window.BeginTimelineStartEdit(vm.Videos[0]);
+            Assert(beganVideoStartEdit && window.TrackStartEditor(0)!.Visibility == Visibility.Visible && window.TrackStartInput(0)!.Width == 100 && window.TrackStartEditor(0)!.Margin.Left == -4,
+                $"Video block double-click editor uses shared inline sizing and offset: began={beganVideoStartEdit}, visibility={window.TrackStartEditor(0)!.Visibility}, width={window.TrackStartInput(0)!.Width}, margin={window.TrackStartEditor(0)!.Margin.Left}");
+            window.TrackStartInput(0)!.Text = "2.5";
+            window.TrackStartInput(0)!.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window.TrackStartInput(0)!), Environment.TickCount, Key.Enter) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+            await WaitAsync(() => Math.Abs(vm.Videos[0].StartSeconds - 2.5) < 0.00001, () => vm.ErrorMessage);
+            Assert(window.TrackStartLabel(0)!.Visibility == Visibility.Visible && window.TrackStartLabel(0)!.FontSize == 13 && window.TrackStartLabel(0)!.FontWeight == FontWeights.SemiBold, "Block start edit commits and restores the larger centered label");
+            await vm.CommitTimelineTrackStartAsync(vm.Videos[0], 0);
+            var beganAudioStartEdit = window.BeginTimelineStartEdit(vm.Audios[0]);
+            Assert(beganAudioStartEdit && window.TrackStartEditor(window.AudioRowIndex)?.Visibility == Visibility.Visible,
+                $"MP3 block supports the same start editor: began={beganAudioStartEdit}, hasMedia={vm.Audios[0].HasMedia}, editing={vm.Audios[0].IsEditingStart}, rowIndex={window.AudioRowIndex}, rows={vm.TimelineTracks.Count}, editor={window.TrackStartEditor(window.AudioRowIndex)?.Visibility}");
+            window.TrackStartInput(window.AudioRowIndex)!.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window.TrackStartInput(window.AudioRowIndex)!), Environment.TickCount, Key.Escape) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+            Assert(window.TrackStartLabel(window.AudioRowIndex)!.Visibility == Visibility.Visible, "MP3 start edit cancels back to its label");
             SaveScreenshot(window, prefix + "-canvas-settings.png");
-            window.Video1FileName.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
-            Assert(window.VideoSettingsTab.IsSelected && ReferenceEquals(vm.SelectedVideo, vm.Video1), "Timeline video label selects Video 1 and opens its settings");
-            window.Video2FileName.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
-            Assert(window.VideoSettingsTab.IsSelected && ReferenceEquals(vm.SelectedVideo, vm.Video2), "Timeline video label selects Video 2 and opens its settings");
+            window.TrackFileName(0)!.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+            Assert(window.VideoSettingsTab.IsSelected && ReferenceEquals(vm.SelectedVideo, vm.Videos[0]), "Timeline video label selects Video 1 and opens its settings");
+            window.TrackFileName(1)!.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+            Assert(window.VideoSettingsTab.IsSelected && ReferenceEquals(vm.SelectedVideo, vm.Videos[1]), "Timeline video label selects Video 2 and opens its settings");
             window.VideoSettingsTab.IsSelected = true;
             await window.Dispatcher.InvokeAsync(window.UpdateLayout, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             Assert(window.VideoSettingsTab.IsSelected && window.FitModeFitButton.IsVisible && window.FitModeFillButton.IsVisible && window.FitModeStretchButton.IsVisible, "Video tab shows fit mode controls");
             window.FitModeFillButton.BringIntoView();
             window.FitModeFillButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-            Assert(!vm.SelectedVideo.AspectRatioLocked && vm.SelectedVideo.FitMode == VideoFitMode.Fill, "Fit mode selection unlocks aspect ratio and updates mode");
+            Assert(vm.SelectedVideo is { AspectRatioLocked: false, FitMode: VideoFitMode.Fill }, "Fit mode selection unlocks aspect ratio and updates mode");
             window.AspectLockCheckBox.SetCurrentValue(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, true);
-            Assert(vm.SelectedVideo.AspectRatioLocked && vm.SelectedVideo.FitMode == VideoFitMode.Fill, "Aspect lock retains the fit mode");
+            Assert(vm.SelectedVideo is { AspectRatioLocked: true, FitMode: VideoFitMode.Fill }, "Aspect lock retains the fit mode");
             window.AspectLockCheckBox.SetCurrentValue(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, false);
-            Assert(!vm.SelectedVideo.AspectRatioLocked && vm.SelectedVideo.FitMode == VideoFitMode.Fill, "Unlock restores the retained fit mode selection");
+            Assert(vm.SelectedVideo is { AspectRatioLocked: false, FitMode: VideoFitMode.Fill }, "Unlock restores the retained fit mode selection");
             await window.Dispatcher.InvokeAsync(window.UpdateLayout, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             SaveScreenshot(window, prefix + "-video-modes.png");
             window.InspectorAudioCheckBox.BringIntoView();
             await window.Dispatcher.InvokeAsync(window.UpdateLayout, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             Assert(window.InspectorAudioCheckBox.IsVisible && window.InspectorVolumeInput.IsVisible && window.InspectorVolumeInput.Height == 30 && Math.Abs(window.InspectorVolumeInput.ActualHeight - 30) < 1, "Video audio controls use the compact icon, slider, and numeric input row");
-            var originalVolume = vm.SelectedVideo.VolumePercent;
+            var originalVolume = vm.SelectedVideo!.VolumePercent;
             window.InspectorVolumeInput.Text = "125";
             window.InspectorVolumeInput.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
-            Assert(Math.Abs(vm.SelectedVideo.VolumePercent - 125) < 0.001, "Video volume numeric input updates the model");
-            vm.SelectedVideo.VolumePercent = originalVolume;
+            Assert(Math.Abs(vm.SelectedVideo!.VolumePercent - 125) < 0.001, "Video volume numeric input updates the model");
+            vm.SelectedVideo!.VolumePercent = originalVolume;
             SaveScreenshot(window, prefix + "-video-settings.png");
             checks.Add("FPS input / quality presets / aspect lock and fit mode buttons");
             var originalFps = vm.OutputFps;
@@ -405,8 +456,8 @@ internal static partial class PreviewDiagnostics
             vm.OutputFps = originalFps;
             checks.Add("FPS and quality presets update model");
 
-            var png = await vm.GetSourceFramePngAsync(vm.Video1);
-            var media = vm.Video1.Media!;
+            var png = await vm.GetSourceFramePngAsync(vm.Videos[0]);
+            var media = vm.Videos[0].Media!;
             var roi = new PixelRect(100, 100, 600, 400);
             var editor = new RoiEditorWindow(png, media.DisplayWidth, media.DisplayHeight, roi) { Owner = window };
             try
@@ -435,7 +486,7 @@ internal static partial class PreviewDiagnostics
             window.UpdateLayout();
             Assert(window.PreviewLoadingOverlay.Visibility == Visibility.Visible, "Visible loading overlay binding");
             Assert(!window.PlayButton.IsEnabled && window.PauseButton.IsEnabled && window.ExportButton.IsEnabled, "Playing UI bindings");
-            Assert(!window.CanAcceptPreviewDrop(drop) && !window.TimelineVideo1.IsEnabled, "Playback locks preview file drops and clip dragging");
+            Assert(!window.CanAcceptPreviewDrop(drop) && !window.TrackClipCanvas(0)!.IsEnabled, "Playback locks preview file drops and clip dragging");
             Assert(!window.BeginPreviewRoi(new Point(480, 540)), "Playback locks ROI dragging");
             SaveScreenshot(window, prefix + "-loading.png");
             var playbackFrom = vm.PlayheadSeconds;
@@ -477,7 +528,7 @@ internal static partial class PreviewDiagnostics
     private static async Task CheckRoiEditsAsync(MainWindow window, string prefix, List<string> checks)
     {
         var vm = window.ViewModel!;
-        var track = vm.Video1;
+        var track = vm.Videos[0];
         vm.SelectVideo(track);
         await vm.ApplyRoiAsync(track, PixelRect.FullFrame(track.Media!));
         var imageBefore = PreviewFingerprint(vm.PreviewImage!);
@@ -572,10 +623,10 @@ internal static partial class PreviewDiagnostics
     private static async Task CheckPreviewGesturesAsync(MainWindow window, string prefix, List<string> checks)
     {
         var vm = window.ViewModel!;
-        await vm.ApplyRoiAsync(vm.Video1, PixelRect.FullFrame(vm.Video1.Media!));
-        await vm.ApplyRoiAsync(vm.Video2, PixelRect.FullFrame(vm.Video2.Media!));
+        await vm.ApplyRoiAsync(vm.Videos[0], PixelRect.FullFrame(vm.Videos[0].Media!));
+        await vm.ApplyRoiAsync(vm.Videos[1], PixelRect.FullFrame(vm.Videos[1].Media!));
         var playhead = vm.PlayheadSeconds;
-        foreach (var (track, overlay) in new[] { (vm.Video1, window.Video1Overlay), (vm.Video2, window.Video2Overlay) })
+        foreach (var (track, overlay) in new[] { (vm.Videos[0], window.TrackOverlayBorder(0)!), (vm.Videos[1], window.TrackOverlayBorder(1)!) })
         {
             track.FitMode = VideoFitMode.Fit;
             // Exercise the same left-click handlers as the actual player, before the right-drag gesture.
@@ -585,7 +636,7 @@ internal static partial class PreviewDiagnostics
             track.SetDestination(placementBeforeSyntheticClick);
             await vm.RefreshStillPreviewAsync();
             Assert(ReferenceEquals(vm.SelectedVideo, track), "Player click activates the intended video");
-            var other = ReferenceEquals(track, vm.Video1) ? vm.Video2 : vm.Video1;
+            var other = ReferenceEquals(track, vm.Videos[0]) ? vm.Videos[1] : vm.Videos[0];
             var otherBefore = other.ToModel();
             var before = track.ToModel();
             var clip = PreviewLayout.From(before).Clip;
@@ -600,7 +651,7 @@ internal static partial class PreviewDiagnostics
             await window.HandleSpacePressAsync(false);
             Assert(!vm.IsPlaying, "Space is ignored during ROI drag");
             RaiseKey(window, Key.Space, keyUp: true);
-            SaveScreenshot(window, prefix + "-direct-roi-" + (ReferenceEquals(track, vm.Video1) ? "1" : "2") + ".png");
+            SaveScreenshot(window, prefix + "-direct-roi-" + (ReferenceEquals(track, vm.Videos[0]) ? "1" : "2") + ".png");
             Assert(window.IsRoiDragging && window.PreviewRoiSelection.ActualWidth > 0 && window.PreviewRoiSelection.ActualHeight > 0, "ROI overlay is laid out and visible before release");
             await window.CompletePreviewRoiAsync(to);
             var expectedRoi = PreviewRoiSelection.Map(before, from.X, from.Y, to.X, to.Y);
@@ -621,31 +672,34 @@ internal static partial class PreviewDiagnostics
         }
         checks.Add("Player activation / active-only ROI / staged rectangle / repeated crop / reset");
 
-        vm.SelectVideo(vm.Video1);
-        var original = vm.Video1.ToModel();
+        vm.SelectVideo(vm.Videos[0]);
+        var original = vm.Videos[0].ToModel();
         var imageBefore = PreviewFingerprint(vm.PreviewImage!);
         Assert(window.BeginPreviewRoi(new Point(480, 540)), "Boundary drag begins");
         window.UpdatePreviewRoi(new Point(5000, -5000));
         Assert(Canvas.GetLeft(window.PreviewRoiSelection) + window.PreviewRoiSelection.Width <= 960 && Canvas.GetTop(window.PreviewRoiSelection) >= 270, "Rectangle clamps to the active displayed picture");
         RaiseKey(window, Key.Escape);
-        Assert(!window.IsRoiDragging && vm.Video1.ToModel() == original && PreviewFingerprint(vm.PreviewImage!) == imageBefore, "Escape cancels without changing ROI / image");
+        Assert(!window.IsRoiDragging && vm.Videos[0].ToModel() == original && PreviewFingerprint(vm.PreviewImage!) == imageBefore, "Escape cancels without changing ROI / image");
         Assert(window.BeginPreviewRoi(new Point(480, 540)), "Tiny drag begins");
         await window.CompletePreviewRoiAsync(new Point(481, 541));
-        Assert(vm.Video1.ToModel() == original, "Accidental right-click / tiny drag is ignored");
+        Assert(vm.Videos[0].ToModel() == original, "Accidental right-click / tiny drag is ignored");
         Assert(window.BeginPreviewRoi(new Point(480, 540)), "Capture-loss drag begins");
         window.PreviewLogicalCanvas.ReleaseMouseCapture();
-        Assert(!window.IsRoiDragging && vm.Video1.ToModel() == original, "Lost pointer capture cancels the drag");
+        Assert(!window.IsRoiDragging && vm.Videos[0].ToModel() == original, "Lost pointer capture cancels the drag");
         Assert(window.BeginPreviewRoi(new Point(480, 540)), "Resize drag begins");
         var width = window.Width;
         window.Width += 20;
         await window.Dispatcher.InvokeAsync(window.UpdateLayout, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-        Assert(!window.IsRoiDragging && vm.Video1.ToModel() == original, "Resize cancels coordinates captured at the old scale");
+        Assert(!window.IsRoiDragging && vm.Videos[0].ToModel() == original, "Resize cancels coordinates captured at the old scale");
         window.Width = width;
         await window.Dispatcher.InvokeAsync(window.UpdateLayout, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         checks.Add("ROI boundary clamp / Escape / tiny drag / capture loss / resize cancellation");
 
-        var x2 = vm.Video2.DestinationX;
-        vm.Video2.DestinationX = 0;
+        var x2 = vm.Videos[1].DestinationX;
+        vm.Videos[1].DestinationX = 0;
+        // Row order is layer order now: the first row draws in front, so the second row is the
+        // occluded one this check needs as the active player.
+        vm.SelectVideo(vm.Videos[1]);
         await vm.RefreshStillPreviewAsync();
         var compositionBefore = vm.BuildComposition();
         imageBefore = PreviewFingerprint(vm.PreviewImage!);
@@ -653,16 +707,16 @@ internal static partial class PreviewDiagnostics
         window.UpdatePreviewRoi(new Point(700, 700));
         Assert(PreviewFingerprint(vm.PreviewImage!) != imageBefore, "Occluded active player is temporarily displayed in front");
         Assert(vm.BuildComposition() == compositionBefore, "Temporary front display does not affect the export snapshot");
-        Assert(Panel.GetZIndex(window.Video1Overlay) == int.MaxValue, "Active player outline follows display focus");
+        Assert(Panel.GetZIndex(window.TrackOverlayContainer(1)!) == int.MaxValue, "Active player outline follows display focus");
         SaveScreenshot(window, prefix + "-direct-roi-overlap.png");
         window.CancelPreviewRoi();
-        Assert(PreviewFingerprint(vm.PreviewImage!) == imageBefore && Panel.GetZIndex(window.Video1Overlay) == vm.Video1.ZIndex, "Cancel restores display layer order and binding");
+        Assert(PreviewFingerprint(vm.PreviewImage!) == imageBefore && Panel.GetZIndex(window.TrackOverlayContainer(1)!) == vm.Videos[1].ZIndex, "Cancel restores display layer order and binding");
         Assert(window.BeginPreviewRoi(new Point(480, 540)), "Overlapped crop restart");
         await window.CompletePreviewRoiAsync(new Point(700, 700));
-        Assert(vm.Video1.ZIndex == compositionBefore.Video1.ZIndex && vm.Video2.ZIndex == compositionBefore.Video2.ZIndex, "Commit preserves both export layer indices");
+        Assert(vm.Videos[0].ZIndex == compositionBefore.Videos[0].ZIndex && vm.Videos[1].ZIndex == compositionBefore.Videos[1].ZIndex, "Commit preserves both export layer indices");
         Assert(PreviewFingerprint(vm.PreviewImage!) == imageBefore, "Commit restores the original front player too");
-        vm.Video2.DestinationX = x2;
-        await vm.ApplyRoiAsync(vm.Video1, PixelRect.FullFrame(vm.Video1.Media!));
+        vm.Videos[1].DestinationX = x2;
+        await vm.ApplyRoiAsync(vm.Videos[0], PixelRect.FullFrame(vm.Videos[0].Media!));
         checks.Add("Overlapped active player focus / export snapshot isolation / cancel and commit restore order");
     }
 
@@ -712,7 +766,7 @@ internal static partial class PreviewDiagnostics
         window.PreviewLogicalCanvas.Focus();
         await window.HandleSpacePressAsync(true);
         Assert(!vm.IsPlaying, "An OS auto-repeat without a fresh press is ignored");
-        var clip = window.TimelineVideo1.Children.OfType<Border>().Single();
+        var clip = window.TrackClipCanvas(0)!.Children.OfType<Border>().Single();
         clip.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
         RaiseKey(window, Key.Space);
         RaiseKey(window, Key.Space, keyUp: true);

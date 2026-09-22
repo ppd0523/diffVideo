@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
@@ -40,7 +41,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private double _exportProgress;
     private bool _isExporting;
     private PlaybackState _playbackState = PlaybackState.Stopped;
-    private VideoTrackViewModel _selectedVideo;
+    private VideoTrackViewModel? _selectedVideo;
     private bool _suppressTrackPreview;
     private bool _hasInteractivePreviewPending;
     private bool _interactivePreviewScheduled;
@@ -59,19 +60,43 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _exportService = new(paths);
         _playerPreview = new(paths);
         PreviewImage = _playerPreview.Image;
-        Video1 = new("영상 1", 0);
-        Video2 = new("영상 2", 1);
-        Audio = new();
-        _selectedVideo = Video1;
-        Video1.IsSelected = true;
-        SubscribeTrack(Video1);
-        SubscribeTrack(Video2);
-        Audio.PropertyChanged += TrackPropertyChanged;
+        Videos.CollectionChanged += (_, _) => RebuildTimelineTracks();
+        Audios.CollectionChanged += (_, _) => RebuildTimelineTracks();
     }
 
-    public VideoTrackViewModel Video1 { get; }
-    public VideoTrackViewModel Video2 { get; }
-    public AudioTrackViewModel Audio { get; }
+    // ponytail: UI-only ceilings. Core counts no tracks at all, so raising these when hardware
+    // allows is a one-line change with no engine work.
+    public const int MaximumVideoTracks = 4;
+    public const int MaximumAudioTracks = 4;
+
+    /// <summary>Layer order: the first entry draws in front of the rest.</summary>
+    public ObservableCollection<VideoTrackViewModel> Videos { get; } = [];
+
+    /// <summary>Audio-only sources. They carry no placement, so they have no layer order.</summary>
+    public ObservableCollection<AudioTrackViewModel> Audios { get; } = [];
+
+    public bool CanAddAudio => Audios.Count < MaximumAudioTracks;
+
+    /// <summary>
+    /// Every timeline row in display order: videos first, then audio. Both the fixed name column
+    /// and the scrolling clip column bind to this one list, so their rows line up by construction.
+    /// Media kind decides the block, which is why the two never interleave.
+    /// </summary>
+    public ObservableCollection<object> TimelineTracks { get; } = [];
+
+    private void RebuildTimelineTracks()
+    {
+        TimelineTracks.Clear();
+        foreach (var video in Videos)
+        {
+            TimelineTracks.Add(video);
+        }
+
+        foreach (var audio in Audios)
+        {
+            TimelineTracks.Add(audio);
+        }
+    }
 
     public IReadOnlyList<Choice<int>> FpsChoices { get; } =
     [
@@ -97,6 +122,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _canvasWidth, normalized))
             {
                 OnPropertyChanged(nameof(CanvasSizeText));
+                RelayoutGrid();
                 QueuePropertyPreview();
             }
         }
@@ -111,6 +137,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _canvasHeight, normalized))
             {
                 OnPropertyChanged(nameof(CanvasSizeText));
+                RelayoutGrid();
                 QueuePropertyPreview();
             }
         }
@@ -285,9 +312,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _ => "정지"
     };
 
-    public bool HasComposition => Video1.HasMedia && Video2.HasMedia;
+    public bool HasComposition => Videos.Count > 0 || Audios.Count > 0;
 
-    public VideoTrackViewModel SelectedVideo
+    public bool CanAddVideo => Videos.Count < MaximumVideoTracks;
+
+    public VideoTrackViewModel? SelectedVideo
     {
         get => _selectedVideo;
         private set
@@ -299,7 +328,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string SelectedVideoTitle => $"{SelectedVideo.Name} 속성";
+    public string SelectedVideoTitle => SelectedVideo is null ? "영상 속성" : $"{SelectedVideo.Name} 속성";
 
     public Task LoadFilesAsync(IEnumerable<string> paths) => LoadFilesCoreAsync(paths, null);
 
@@ -323,18 +352,39 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 if (media.Kind == MediaKind.Audio)
                 {
                     if (requestedVideo is not null) { throw new InvalidOperationException("영상 트랙에는 MP4 영상만 불러올 수 있습니다."); }
-                    Audio.SetMedia(media);
+                    if (!CanAddAudio)
+                    {
+                        throw new InvalidOperationException($"음원은 최대 {MaximumAudioTracks}개까지 추가할 수 있습니다.");
+                    }
+
+                    var track = new AudioTrackViewModel();
+                    track.PropertyChanged += TrackPropertyChanged;
+                    track.SetMedia(media);
+                    Audios.Add(track);
+                    OnPropertyChanged(nameof(CanAddAudio));
                     continue;
                 }
 
-                var target = requestedVideo ?? (!Video1.HasMedia ? Video1 : !Video2.HasMedia ? Video2 : SelectedVideo);
-                var halfWidth = CanvasWidth / 2;
+                var target = requestedVideo;
+                if (target is null)
+                {
+                    if (!CanAddVideo)
+                    {
+                        throw new InvalidOperationException($"영상은 최대 {MaximumVideoTracks}개까지 추가할 수 있습니다.");
+                    }
+
+                    target = new VideoTrackViewModel(TrackName(Videos.Count));
+                    target.PropertyChanged += TrackPropertyChanged;
+                    Videos.Add(target);
+                    RenumberTracks();
+                    OnPropertyChanged(nameof(CanAddVideo));
+                }
+
                 var destination = target.HasMedia
                     ? new PixelRect(target.DestinationX, target.DestinationY, target.DestinationWidth, target.DestinationHeight)
-                    : ReferenceEquals(target, Video1)
-                        ? new PixelRect(0, 0, halfWidth, CanvasHeight)
-                        : new PixelRect(halfWidth, 0, CanvasWidth - halfWidth, CanvasHeight);
+                    : new PixelRect(0, 0, CanvasWidth, CanvasHeight);
                 target.SetMedia(media, destination);
+                RelayoutGrid();
                 SelectVideo(target);
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
@@ -347,14 +397,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         NotifyControlState();
         if (HasComposition)
         {
-            var end = Math.Max(Video1.StartSeconds + Video1.DurationSeconds, Video2.StartSeconds + Video2.DurationSeconds);
-            if (Audio.HasMedia)
+            var end = Videos.Count == 0 ? 0 : Videos.Max(video => video.StartSeconds + video.DurationSeconds);
+            foreach (var audio in Audios)
             {
-                end = Math.Max(end, Audio.StartSeconds + Audio.DurationSeconds);
+                end = Math.Max(end, audio.StartSeconds + audio.DurationSeconds);
             }
 
             OutputDurationSeconds = Math.Max(0.01, end);
-            OutputFps = ChooseAutomaticFps(Math.Max(Video1.Media!.FramesPerSecond, Video2.Media!.FramesPerSecond));
+            if (Videos.Count > 0)
+            {
+                OutputFps = ChooseAutomaticFps(Videos.Max(video => video.Media!.FramesPerSecond));
+            }
             if (!hadComposition)
             {
                 SetPlayhead(PlaybackScope.Segment, ExportStartSeconds, transitionFromStopped: false);
@@ -367,37 +420,116 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    public void SelectVideo(VideoTrackViewModel track)
+    public void SelectVideo(VideoTrackViewModel? track)
     {
-        Video1.IsSelected = ReferenceEquals(track, Video1);
-        Video2.IsSelected = ReferenceEquals(track, Video2);
+        foreach (var video in Videos)
+        {
+            video.IsSelected = ReferenceEquals(video, track);
+        }
+
         SelectedVideo = track;
     }
 
+    /// <summary>Row order is layer order, so moving a layer is moving its row.</summary>
     public void MoveSelectedLayer(bool forward)
     {
-        FrontVideoIndex = ReferenceEquals(forward ? SelectedVideo : OtherVideo(SelectedVideo), Video1) ? 1 : 2;
+        if (SelectedVideo is not { } selected) { return; }
+        var from = Videos.IndexOf(selected);
+        MoveVideo(from, from + (forward ? -1 : 1));
     }
 
-    public IReadOnlyList<Choice<int>> FrontVideoChoices { get; } =
-    [new("A · 영상 1", 1), new("B · 영상 2", 2)];
-
-    public int FrontVideoIndex
+    public void MoveVideo(int from, int to)
     {
-        get => Video1.ZIndex > Video2.ZIndex ? 1 : 2;
-        set
+        if (!IsEditingEnabled || from == to || from < 0 || to < 0 || from >= Videos.Count || to >= Videos.Count)
         {
-            if (!IsEditingEnabled || value is not (1 or 2) || value == FrontVideoIndex) { return; }
-            _suppressTrackPreview = true;
-            try
+            return;
+        }
+
+        Videos.Move(from, to);
+        RenumberTracks();
+        UpdatePlacementPreview();
+        Status = $"{Videos[to].Name}을(를) {to + 1}번째 레이어로 옮겼습니다.";
+    }
+
+    /// <summary>Audio rows are removed the same way video rows are.</summary>
+    public void RemoveAudio(AudioTrackViewModel track)
+    {
+        if (!IsEditingEnabled || !Audios.Remove(track))
+        {
+            return;
+        }
+
+        track.PropertyChanged -= TrackPropertyChanged;
+        OnPropertyChanged(nameof(HasComposition));
+        OnPropertyChanged(nameof(CanAddAudio));
+        NotifyControlState();
+        Status = "음원 트랙을 제거했습니다.";
+        _ = RefreshStillPreviewAsync();
+    }
+
+    /// <summary>Removing the last track is allowed; it returns the editor to its empty state.</summary>
+    public void RemoveVideo(VideoTrackViewModel track)
+    {
+        if (!IsEditingEnabled)
+        {
+            return;
+        }
+
+        if (!Videos.Remove(track))
+        {
+            return;
+        }
+
+        track.PropertyChanged -= TrackPropertyChanged;
+
+        RenumberTracks();
+        RelayoutGrid();
+        if (ReferenceEquals(SelectedVideo, track))
+        {
+            SelectVideo(Videos.FirstOrDefault());
+        }
+
+        OnPropertyChanged(nameof(HasComposition));
+        OnPropertyChanged(nameof(CanAddVideo));
+        NotifyControlState();
+        Status = "영상 트랙을 제거했습니다.";
+        _ = RefreshStillPreviewAsync();
+    }
+
+    private static string TrackName(int index) => $"영상 {index + 1}";
+
+    private void RenumberTracks()
+    {
+        for (var index = 0; index < Videos.Count; index++)
+        {
+            Videos[index].Name = TrackName(index);
+            // The first row draws in front, so row order inverts into layer order.
+            Videos[index].ZIndex = Videos.Count - 1 - index;
+        }
+
+        OnPropertyChanged(nameof(SelectedVideoTitle));
+    }
+
+    /// <summary>
+    /// Lays uncustomized tracks out on a ceil(sqrt(N)) grid. Two videos land left and right,
+    /// exactly as they did before. Hand-placed tracks are skipped: automatic layout must never
+    /// destroy placement work.
+    /// </summary>
+    private void RelayoutGrid()
+    {
+        if (Videos.Count == 0)
+        {
+            return;
+        }
+
+        for (var index = 0; index < Videos.Count; index++)
+        {
+            if (Videos[index].IsPlacementCustomized)
             {
-                Video1.ZIndex = value == 1 ? 1 : 0;
-                Video2.ZIndex = value == 2 ? 1 : 0;
+                continue;
             }
-            finally { _suppressTrackPreview = false; }
-            OnPropertyChanged(nameof(FrontVideoIndex));
-            UpdatePlacementPreview();
-            Status = $"{(value == 1 ? "A · 영상 1" : "B · 영상 2")}을 위에 표시합니다.";
+
+            Videos[index].ApplyLayoutDestination(GridLayout.Cell(index, Videos.Count, CanvasWidth, CanvasHeight));
         }
     }
 
@@ -416,13 +548,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         if (!HasComposition)
         {
-            throw new InvalidOperationException("MP4 영상 두 개가 필요합니다.");
+            throw new InvalidOperationException("영상 또는 음원이 최소 한 개 필요합니다.");
         }
 
         var composition = new Composition(
-            Video1.ToModel(),
-            Video2.ToModel(),
-            Audio.ToModel(),
+            Videos.Select(video => video.ToModel()).ToArray(),
+            Audios.Select(audio => audio.ToModel()).OfType<AudioTrack>().ToArray(),
             new(CanvasWidth, CanvasHeight, OutputFps, TimeSpan.FromSeconds(OutputDurationSeconds), Quality));
         var validation = CompositionValidator.Validate(composition);
         if (validation.Count > 0)
@@ -550,7 +681,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         if (!_disposed && (track is null || !IsPlaying))
         {
-            _playerPreview.SetRoiFocus(track is null ? null : ReferenceEquals(track, Video1) ? 1 : 2);
+            var index = track is null ? -1 : Videos.IndexOf(track);
+            _playerPreview.SetRoiFocus(index < 0 ? null : index);
         }
     }
 
@@ -715,6 +847,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                             previewCancellation.Cancel();
                         }
                         else { SetPlayhead(scope, time, transitionFromStopped: false); }
+                        PublishTrackLag();
                     }
                 },
                 loading =>
@@ -743,6 +876,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (!_disposed && ReferenceEquals(_previewCancellation, previewCancellation))
             {
                 IsPreviewLoading = false;
+                ClearTrackLag();
+                ReportLaggingTracks();
                 if (completedNaturally || reachedScopeEnd)
                 {
                     SetPlayhead(scope, endSeconds, transitionFromStopped: false);
@@ -882,18 +1017,50 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private Composition BuildCompositionWithTemporaryStart(object? track, double pendingStart)
     {
         var composition = BuildComposition();
-        return track switch
+        if (track is not VideoTrackViewModel video)
         {
-            VideoTrackViewModel video when ReferenceEquals(video, Video1) => composition with
-            {
-                Video1 = composition.Video1 with { Start = TimeSpan.FromSeconds(pendingStart) }
-            },
-            VideoTrackViewModel video when ReferenceEquals(video, Video2) => composition with
-            {
-                Video2 = composition.Video2 with { Start = TimeSpan.FromSeconds(pendingStart) }
-            },
-            _ => composition
-        };
+            return composition;
+        }
+
+        var index = Videos.IndexOf(video);
+        return index < 0
+            ? composition
+            : composition.WithVideo(index, composition.Videos[index] with { Start = TimeSpan.FromSeconds(pendingStart) });
+    }
+
+    /// <summary>Mirrors the session flags onto the tracks so each badge follows its own player.</summary>
+    private void PublishTrackLag()
+    {
+        var lagging = _playerPreview.TrackLagging;
+        for (var index = 0; index < Videos.Count && index < lagging.Count; index++)
+        {
+            Videos[index].IsLagging = lagging[index];
+        }
+    }
+
+    private void ClearTrackLag()
+    {
+        foreach (var video in Videos)
+        {
+            video.IsLagging = false;
+        }
+    }
+
+    /// <summary>
+    /// Playback is never cut short for a slow track, so the only place to say it happened is
+    /// once it is over.
+    /// </summary>
+    private void ReportLaggingTracks()
+    {
+        var everLagged = _playerPreview.TrackEverLagged;
+        var late = Videos
+            .Where((_, index) => index < everLagged.Count && everLagged[index])
+            .Select(video => video.Name)
+            .ToArray();
+        if (late.Length == 0) { return; }
+
+        ErrorMessage = $"{string.Join(", ", late)}이(가) 실시간 재생을 따라가지 못했습니다. " +
+            $"최대 지연 {_playerPreview.MaximumObservedSkewSeconds:0.00}초 · 내보내기 결과에는 영향이 없습니다.";
     }
 
     private void CancelInteractivePreview()
@@ -904,14 +1071,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _interactivePreviewCancellation?.Cancel();
     }
 
-    private void SubscribeTrack(VideoTrackViewModel track) => track.PropertyChanged += TrackPropertyChanged;
-
     private void TrackPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
-        if (!_suppressTrackPreview && eventArgs.PropertyName == nameof(VideoTrackViewModel.ZIndex))
-        {
-            OnPropertyChanged(nameof(FrontVideoIndex));
-        }
         if (_suppressTrackPreview || eventArgs.PropertyName is nameof(VideoTrackViewModel.IsSelected) or nameof(VideoTrackViewModel.DisplayName) or nameof(VideoTrackViewModel.Details))
         {
             return;
@@ -977,9 +1138,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _suppressTrackPreview = true;
         try
         {
-            Video1.StartSeconds = PlaybackTimeline.SnapVideoStart(Video1.StartSeconds, OutputFps, OutputDurationSeconds);
-            Video2.StartSeconds = PlaybackTimeline.SnapVideoStart(Video2.StartSeconds, OutputFps, OutputDurationSeconds);
-            Audio.StartSeconds = PlaybackTimeline.SnapAudioStart(Audio.StartSeconds, OutputDurationSeconds);
+            foreach (var video in Videos)
+            {
+                video.StartSeconds = PlaybackTimeline.SnapVideoStart(video.StartSeconds, OutputFps, OutputDurationSeconds);
+            }
+
+            foreach (var audio in Audios)
+            {
+                audio.StartSeconds = PlaybackTimeline.SnapAudioStart(audio.StartSeconds, OutputDurationSeconds);
+            }
         }
         finally
         {
@@ -1095,8 +1262,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _playerPreview.ApplyLayout(composition);
         }
     }
-
-    private VideoTrackViewModel OtherVideo(VideoTrackViewModel track) => ReferenceEquals(track, Video1) ? Video2 : Video1;
 
     private static int ChooseAutomaticFps(double sourceFps)
     {

@@ -14,7 +14,7 @@ internal static partial class PreviewDiagnostics
         await vm.RefreshStillPreviewAsync();
         window.UpdateLayout();
         var checks = new List<string>();
-        foreach (var (track, border) in new[] { (vm.Video1, window.Video1Overlay), (vm.Video2, window.Video2Overlay) })
+        foreach (var (track, border) in new[] { (vm.Videos[0], window.TrackOverlayBorder(0)!), (vm.Videos[1], window.TrackOverlayBorder(1)!) })
         {
             var original = track.ToModel().Destination;
             var fingerprint = PreviewFingerprint(vm.PreviewImage!);
@@ -40,9 +40,9 @@ internal static partial class PreviewDiagnostics
             checks.Add(track.Name + ": immediate move, negative coordinates, free/locked resize, cancel and capture loss");
         }
         await vm.StartPlaybackAsync();
-        Assert(!window.BeginOverlayDrag(window.Video1Overlay, new Point(), RoiEdges.None), "Playing placement rejected");
+        Assert(!window.BeginOverlayDrag(window.TrackOverlayBorder(0)!, new Point(), RoiEdges.None), "Playing placement rejected");
         await vm.PausePlaybackAsync();
-        Assert(window.BeginOverlayDrag(window.Video1Overlay, new Point(), RoiEdges.None), "Paused placement allowed");
+        Assert(window.BeginOverlayDrag(window.TrackOverlayBorder(0)!, new Point(), RoiEdges.None), "Paused placement allowed");
         window.CancelOverlayDrag();
         checks.Add("Playback blocks editing; pause enables editing");
         await File.WriteAllTextAsync(report, JsonSerializer.Serialize(new { Success = true, Checks = checks }, JsonOptions));

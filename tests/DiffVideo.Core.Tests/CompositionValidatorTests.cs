@@ -25,11 +25,9 @@ public sealed class CompositionValidatorTests
     public void Validate_RejectsOutOfBoundsRoiAndOddCanvas()
     {
         var composition = TestComposition.Create();
-        composition = composition with
-        {
-            Video1 = composition.Video1 with { Roi = new(1900, 1000, 100, 100) },
-            Output = composition.Output with { Width = 1919 }
-        };
+        composition = composition
+            .WithVideo(0, composition.Videos[0] with { Roi = new(1900, 1000, 100, 100) })
+            with { Output = composition.Output with { Width = 1919 } };
 
         var issues = CompositionValidator.Validate(composition);
         Assert.Contains(issues, issue => issue.Code == "VIDEO_1_ROI");
@@ -53,11 +51,38 @@ internal static class TestComposition
         var video2 = VideoMedia("two.mp4");
         var track1 = new VideoTrack(video1, TimeSpan.Zero, PixelRect.FullFrame(video1), new(0, 0, 960, 1080), VideoFitMode.Fit, true, 0, true, 1);
         var track2 = new VideoTrack(video2, TimeSpan.FromSeconds(3), PixelRect.FullFrame(video2), new(960, 0, 960, 1080), VideoFitMode.Fill, true, 1, true, 0.8);
-        var audio = includeMp3
-            ? new ExtraAudioTrack(new("music.mp3", MediaKind.Audio, "mp3", "mp3", TimeSpan.FromSeconds(8)), TimeSpan.FromSeconds(1), true, 0.3)
-            : null;
-        return new(track1, track2, audio, new(1920, 1080, 30, TimeSpan.FromSeconds(15), OutputQuality.Balanced));
+        AudioTrack[] audios = includeMp3
+            ? [new(new("music.mp3", MediaKind.Audio, "mp3", "mp3", TimeSpan.FromSeconds(8)), TimeSpan.FromSeconds(1), true, 0.3)]
+            : [];
+        return new([track1, track2], audios, new(1920, 1080, 30, TimeSpan.FromSeconds(15), OutputQuality.Balanced));
     }
 
     public static MediaInfo VideoMedia(string path) => new(path, MediaKind.Video, "mov,mp4", "h264", TimeSpan.FromSeconds(10), 1920, 1080, 30, true, "aac", 48000, 2);
+}
+
+public sealed class CompositionEqualityTests
+{
+    [Fact]
+    public void TwoCompositionsWithTheSameTracksAreEqual()
+    {
+        // Each build makes a fresh list, so reference equality would make these differ.
+        Assert.Equal(TestComposition.Create(), TestComposition.Create());
+        Assert.Equal(TestComposition.Create().GetHashCode(), TestComposition.Create().GetHashCode());
+    }
+
+    [Fact]
+    public void ChangingOneTrackBreaksEquality()
+    {
+        var composition = TestComposition.Create();
+        var moved = composition.WithVideo(0, composition.Videos[0] with { Start = TimeSpan.FromSeconds(9) });
+        Assert.NotEqual(composition, moved);
+    }
+
+    [Fact]
+    public void TrackOrderIsPartOfIdentity()
+    {
+        var composition = TestComposition.Create();
+        var swapped = composition with { Videos = [composition.Videos[1], composition.Videos[0]] };
+        Assert.NotEqual(composition, swapped);
+    }
 }

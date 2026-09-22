@@ -12,7 +12,7 @@ public sealed class PreviewPlaybackTests
     [InlineData(20, 4.966666667, false)]
     public void SourceTime_RespectsOffsetAndHeldFrames(double timeline, double expected, bool active)
     {
-        var track = TestComposition.Create().Video1 with { Start = TimeSpan.FromSeconds(2) };
+        var track = TestComposition.Create().Videos[0] with { Start = TimeSpan.FromSeconds(2) };
         track = track with { Media = track.Media with { Duration = TimeSpan.FromSeconds(7), VideoDuration = TimeSpan.FromSeconds(5), FramesPerSecond = 30 } };
         var position = PreviewTiming.Map(timeline, track);
         Assert.Equal(expected, position.Seconds, 7);
@@ -22,7 +22,7 @@ public sealed class PreviewPlaybackTests
     [Fact]
     public void FitLayout_ClipsToRoiAndLeavesLetterbox()
     {
-        var track = TestComposition.Create().Video1 with
+        var track = TestComposition.Create().Videos[0] with
         {
             Roi = new(100, 50, 400, 200),
             Destination = new(10, 20, 200, 200),
@@ -38,7 +38,7 @@ public sealed class PreviewPlaybackTests
     [Fact]
     public void FillLayout_ClipsToDestination()
     {
-        var track = TestComposition.Create().Video1 with
+        var track = TestComposition.Create().Videos[0] with
         {
             Roi = new(100, 50, 400, 200),
             Destination = new(10, 20, 200, 200),
@@ -53,7 +53,7 @@ public sealed class PreviewPlaybackTests
     [Fact]
     public void SourceDecoder_HasOneInputAndNoCompositionFilters()
     {
-        var invocation = SourceVideoDecoder.BuildInvocation(TestComposition.Create().Video1.Media, 3.5, 30);
+        var invocation = SourceVideoDecoder.BuildInvocation(TestComposition.Create().Videos[0].Media, 3.5, 30);
         Assert.Single(invocation.Arguments, item => item == "-i");
         Assert.DoesNotContain("-filter_complex", invocation.Arguments);
         Assert.DoesNotContain(invocation.Arguments, value => value.Contains("overlay") || value.Contains("crop="));

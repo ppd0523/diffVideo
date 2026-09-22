@@ -28,7 +28,8 @@ public sealed class FfmpegExportService(FfmpegPaths paths)
         }
 
         outputPath = Path.GetFullPath(outputPath);
-        var sources = new[] { composition.Video1.Media.Path, composition.Video2.Media.Path, composition.ExtraAudio?.Media.Path };
+        var sources = composition.Videos.Select(track => track.Media.Path)
+            .Concat(composition.Audios.Select(track => track.Media.Path));
         if (sources.Any(source => source is not null && string.Equals(Path.GetFullPath(source), outputPath, StringComparison.OrdinalIgnoreCase)))
         {
             throw new IOException("원본 영상 또는 음원과 같은 경로로 저장할 수 없습니다.");

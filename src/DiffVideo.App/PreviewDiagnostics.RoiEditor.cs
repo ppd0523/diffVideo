@@ -17,8 +17,8 @@ internal static partial class PreviewDiagnostics
         Assert(window.Title == "DiffVideo" && typeof(MainWindow).Assembly.GetName().Name == "DiffVideo", "Renamed window and assembly");
         await vm.LoadFilesAsync(files);
         var snapshot = vm.BuildComposition();
-        var png = await vm.GetSourceFramePngAsync(vm.Video1);
-        var media = vm.Video1.Media!;
+        var png = await vm.GetSourceFramePngAsync(vm.Videos[0]);
+        var media = vm.Videos[0].Media!;
         var original = new PixelRect(100, 100, 600, 400);
         var editor = new RoiEditorWindow(png, media.DisplayWidth, media.DisplayHeight, original) { Owner = window };
         editor.Show(); editor.UpdateLayout();
