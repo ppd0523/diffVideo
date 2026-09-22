@@ -16,8 +16,10 @@ $zipPath = Join-Path $artifactsRoot "$PackageName-portable.zip"
 $env:DIFFVIDEO_FFMPEG_BIN = Join-Path $projectRoot 'tools\ffmpeg\bin'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 
+# Restore uses cached packages first; unavailable feeds are tolerated, missing packages still fail.
+# Skip the online vulnerability audit for this portable build so cached builds work offline.
 if (-not $SkipTests) {
-    & $DotnetPath test (Join-Path $projectRoot 'DiffVideo.slnx') -c Release
+    & $DotnetPath test (Join-Path $projectRoot 'DiffVideo.slnx') -c Release -p:RestoreIgnoreFailedSources=true -p:NuGetAudit=false
     if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
 }
 
@@ -43,7 +45,7 @@ if (Test-Path -LiteralPath $zipPath) {
     Remove-Item -LiteralPath $zipPath -Force
 }
 
-& $DotnetPath publish (Join-Path $projectRoot 'src\DiffVideo.App\DiffVideo.App.csproj') -c Release -r win-x64 --self-contained true -o $publishDirectory
+& $DotnetPath publish (Join-Path $projectRoot 'src\DiffVideo.App\DiffVideo.App.csproj') -c Release -r win-x64 --self-contained true -o $publishDirectory -p:RestoreIgnoreFailedSources=true -p:NuGetAudit=false
 if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 
 if ($RunGuiSmokeTest) {

@@ -19,17 +19,6 @@
                 <Border Background="{StaticResource WarningBrush}" CornerRadius="0"><TextBlock Text="{TemplateBinding Tag}" Foreground="{StaticResource CanvasBrush}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
-        <Style x:Key="MediaSelector" TargetType="Button" BasedOn="{StaticResource CompactButton}">
-            <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="BorderBrush" Value="{StaticResource MediumBorderBrush}" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
-                    <Setter Property="Foreground" Value="{StaticResource CanvasBrush}" />
-                    <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
         <Style x:Key="TextBoxButton" TargetType="Button">
             <Setter Property="Height" Value="30" />
             <Setter Property="MinHeight" Value="30" />
@@ -245,20 +234,16 @@
                         </TabItem>
                         <TabItem x:Name="VideoSettingsTab" Header="영상">
                             <Grid IsEnabled="{Binding IsEditingEnabled}">
-                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto"/><RowDefinition Height="*" /></Grid.RowDefinitions>
-                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
-                                    <Button Style="{StaticResource MediaSelector}" Click="MediaVideo_Click" ToolTip="미디어 추가" AutomationProperties.Name="미디어 추가"><StackPanel Orientation="Horizontal"><ContentControl Content="{StaticResource Icon.Add}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" /><ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Width="20" Height="20" Margin="4,0,0,0" /></StackPanel></Button>
-                                    <Button x:Name="ResetRoiButton" Content="{StaticResource Icon.CropFree}" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="선택 영상의 ROI를 원본 전체로 복원" Click="ResetRoi_Click" IsEnabled="{Binding SelectedVideo.HasMedia}" Margin="8,0,0,0" />
-                                </StackPanel>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                                 <StackPanel Grid.Row="0" Margin="0,0,0,12">
-                                    <Button x:Name="SelectedVideoFileButton" Style="{StaticResource TextBoxButton}" Click="SelectedVideoFile_Click" ToolTip="영상 선택 또는 교체" AutomationProperties.Name="선택 영상 파일" Margin="0,0,0,12">
+                                    <Button x:Name="SelectedVideoFileButton" Style="{StaticResource TextBoxButton}" Click="OpenFiles_Click" ToolTip="미디어 추가" AutomationProperties.Name="미디어 추가" Margin="0,0,0,12">
                                         <DockPanel>
                                             <ContentControl DockPanel.Dock="Right" Content="{StaticResource Icon.FolderOpen}" Style="{StaticResource MaterialIcon}" Width="18" Height="18" Margin="8,0,0,0" />
                                             <TextBlock x:Name="SelectedVideoFileName" TextTrimming="CharacterEllipsis" ToolTip="{Binding SelectedVideo.DisplayName}">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="FontSize" Value="13" />
-                                                        <Setter Property="Text" Value="{Binding SelectedVideo.DisplayName}" />
+                                                        <Setter Property="Text" Value="{Binding SelectedVideo.DisplayName, TargetNullValue=영상 선택…, FallbackValue=영상 선택…}" />
                                                         <Style.Triggers><DataTrigger Binding="{Binding SelectedVideo.HasMedia}" Value="False"><Setter Property="Text" Value="영상 선택…" /></DataTrigger></Style.Triggers>
                                                     </Style>
                                                 </TextBlock.Style>
@@ -269,9 +254,11 @@
                                         <TextBlock Text="레이어" Style="{StaticResource FieldLabel}" Margin="0,0,12,0" VerticalAlignment="Center" />
                                         <Button x:Name="SendBackwardButton" Content="{StaticResource Icon.FlipToBack}" Click="SendBackward_Click" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="선택한 영상을 뒤로 보내기" Margin="0,0,8,0" />
                                         <Button x:Name="BringForwardButton" Content="{StaticResource Icon.FlipToFront}" Click="BringForward_Click" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="선택한 영상을 앞으로 가져오기" />
+                                        <Border Width="1" Height="20" Background="{StaticResource HairlineBrush}" Margin="12,0" VerticalAlignment="Center" />
+                                        <Button x:Name="ResetRoiButton" Content="{StaticResource Icon.CropFree}" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="선택 영상의 ROI를 원본 전체로 복원" Click="ResetRoi_Click" IsEnabled="{Binding SelectedVideo.HasMedia}" />
                                     </StackPanel>
                                 </StackPanel>
-                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                     <StackPanel DataContext="{Binding SelectedVideo}">
                                         <TextBlock Text="배치" Style="{StaticResource FieldLabel}" Margin="0,12,0,8" />
                                         <DockPanel><TextBlock Text="시작" FontSize="13" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,12,0" /><TextBox Padding="3.6,2.4" MinHeight="30" Text="{Binding StartSeconds, StringFormat=F3, UpdateSourceTrigger=LostFocus}" ToolTip="영상 시작 시각 (초)" AutomationProperties.Name="영상 시작 시각" /></DockPanel>
@@ -417,7 +404,7 @@
                 </Grid>
 <Grid x:Name="TimelineBody" Grid.Row="2">
 <Grid.ColumnDefinitions><ColumnDefinition x:Name="TimelineLabelColumn" Width="204" MinWidth="180"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-<Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="*"/><RowDefinition Height="16"/></Grid.RowDefinitions>
+<Grid.RowDefinitions><RowDefinition Height="22"/><RowDefinition Height="*"/><RowDefinition Height="32"/></Grid.RowDefinitions>
 <ContentControl Content="{StaticResource Icon.ViewTimeline}" Style="{StaticResource MaterialIcon}" ToolTip="통합 타임라인" HorizontalAlignment="Left" Width="18" Height="18"/>
                 <ItemsControl x:Name="TimelineTrackNames" Grid.Row="1" ItemsSource="{Binding TimelineTracks}" Margin="0,0,6,0"
                               IsEnabled="{Binding IsEditingEnabled}">

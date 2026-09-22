@@ -285,19 +285,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void SelectedVideoFile_Click(object sender, RoutedEventArgs e)
-    {
-        if (ViewModel is not { IsEditingEnabled: true } vm || vm.SelectedVideo is not { } selected) { return; }
-        var dialog = new OpenFileDialog
-        {
-            Title = $"{selected.Name} 선택 또는 교체",
-            Filter = "MP4 영상 (*.mp4)|*.mp4",
-            Multiselect = false,
-            CheckFileExists = true
-        };
-        if (dialog.ShowDialog(this) == true) { await vm.LoadVideoAsync(selected, dialog.FileName); }
-    }
-
     private async void Export_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel is null || !ViewModel.HasComposition)
@@ -459,28 +446,6 @@ public partial class MainWindow : Window
         {
             video.AspectRatioLocked = false;
             video.FitMode = fitMode;
-        }
-    }
-
-    private async void MediaVideo_Click(object sender, RoutedEventArgs e)
-    {
-        if (ViewModel is not { IsEditingEnabled: true } vm) { return; }
-        if (!vm.CanAddVideo && !vm.CanAddAudio)
-        {
-            vm.ReportInteraction($"영상 {MainViewModel.MaximumVideoTracks}개와 음원 {MainViewModel.MaximumAudioTracks}개를 모두 채웠습니다.", "");
-            return;
-        }
-
-        var dialog = new OpenFileDialog
-        {
-            Title = "추가할 미디어 선택",
-            Filter = "미디어 (*.mp4;*.mp3)|*.mp4;*.mp3|MP4 영상 (*.mp4)|*.mp4|MP3 음원 (*.mp3)|*.mp3",
-            Multiselect = true,
-            CheckFileExists = true
-        };
-        if (dialog.ShowDialog(this) == true)
-        {
-            await vm.LoadFilesAsync(dialog.FileNames);
         }
     }
 

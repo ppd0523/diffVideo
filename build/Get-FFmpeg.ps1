@@ -19,17 +19,32 @@ $extractDirectory = Join-Path $projectRoot 'tools\ffmpeg-extract'
 
 $ffmpegPath = Join-Path $Destination 'bin\ffmpeg.exe'
 $ffprobePath = Join-Path $Destination 'bin\ffprobe.exe'
-if ((Test-Path -LiteralPath $ffmpegPath) -and (Test-Path -LiteralPath $ffprobePath)) {
+$licensePath = Join-Path $Destination 'licenses\FFmpeg-LICENSE.txt'
+if ((Test-Path -LiteralPath $ffmpegPath) -and (Test-Path -LiteralPath $ffprobePath) -and (Test-Path -LiteralPath $licensePath)) {
     $reportedVersion = & $ffmpegPath -version | Select-Object -First 1
     if ($reportedVersion -match [regex]::Escape($version)) {
         Write-Output "FFmpeg $version is already available at $Destination"
-        exit 0
+        return
     }
 }
 
 New-Item -ItemType Directory -Force -Path $downloadDirectory | Out-Null
-if (-not (Test-Path -LiteralPath $archivePath)) {
-    Invoke-WebRequest -Uri $url -OutFile $archivePath
+if (-not (Test-Path -LiteralPath $archivePath) -or (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash -ne $expectedHash) {
+    $partialPath = "$archivePath.partial"
+    try {
+        Write-Output 'FFmpeg is not available locally; attempting download...'
+        Invoke-WebRequest -Uri $url -OutFile $partialPath -UseBasicParsing -TimeoutSec 60
+        if ((Get-FileHash -LiteralPath $partialPath -Algorithm SHA256).Hash -ne $expectedHash) {
+            throw 'Downloaded FFmpeg archive checksum mismatch.'
+        }
+        Move-Item -LiteralPath $partialPath -Destination $archivePath -Force
+    }
+    catch {
+        throw "Required FFmpeg files are unavailable locally and download failed: $($_.Exception.Message)"
+    }
+    finally {
+        if (Test-Path -LiteralPath $partialPath) { Remove-Item -LiteralPath $partialPath -Force }
+    }
 }
 
 $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash
