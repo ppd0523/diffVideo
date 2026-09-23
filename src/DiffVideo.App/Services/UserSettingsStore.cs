@@ -19,6 +19,7 @@ internal sealed record WindowUserSettings
 {
     public double Width { get; init; } = 1440;
     public double Height { get; init; } = 900;
+    public double InspectorWidth { get; init; } = 216;
     public double? Left { get; init; }
     public double? Top { get; init; }
     public bool Maximized { get; init; }

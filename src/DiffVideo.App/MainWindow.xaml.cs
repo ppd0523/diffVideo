@@ -223,6 +223,15 @@ public partial class MainWindow : Window
         CancelExportRangeDrag();
     }
 
+    private void PreviewWorkspace_SizeChanged(object sender, SizeChangedEventArgs e) => ResizeInspectorWidth(InspectorColumn.Width.Value);
+    private void InspectorWidth_DragDelta(object sender, DragDeltaEventArgs e) => ResizeInspectorWidth(InspectorColumn.ActualWidth - e.HorizontalChange);
+    internal void ResizeInspectorWidth(double width)
+    {
+        var maximum = Math.Max(InspectorColumn.MinWidth, (ActualWidth > 0 ? ActualWidth : Width) * 0.3);
+        InspectorColumn.MaxWidth = maximum;
+        InspectorColumn.Width = new(FiniteClamp(width, InspectorColumn.MinWidth, maximum, 216));
+    }
+
     private async void ResetRoi_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel is not { IsEditingEnabled: true } vm || vm.SelectedVideo?.Media is not { } media) { return; }
@@ -230,7 +239,7 @@ public partial class MainWindow : Window
         await vm.ApplyRoiAsync(vm.SelectedVideo, PixelRect.FullFrame(media));
     }
 
-    private async void Preview_Drop(object sender, DragEventArgs e)
+    private async void Media_Drop(object sender, DragEventArgs e)
     {
         e.Handled = true;
         PreviewDropHint.Visibility = Visibility.Collapsed;
@@ -250,11 +259,11 @@ public partial class MainWindow : Window
         data.GetDataPresent(DataFormats.FileDrop) && data.GetData(DataFormats.FileDrop) is string[] files
             ? files.Where(IsSupportedFile).ToArray() : [];
 
-    private void Preview_DragOver(object sender, DragEventArgs e)
+    private void Media_DragOver(object sender, DragEventArgs e)
     {
         var accepted = CanAcceptPreviewDrop(e.Data);
         e.Effects = accepted ? DragDropEffects.Copy : DragDropEffects.None;
-        PreviewDropHint.Visibility = accepted ? Visibility.Visible : Visibility.Collapsed;
+        PreviewDropHint.Visibility = accepted && ReferenceEquals(sender, PreviewDropHost) ? Visibility.Visible : Visibility.Collapsed;
         e.Handled = true;
     }
 

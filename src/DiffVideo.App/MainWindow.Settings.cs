@@ -15,6 +15,7 @@ public partial class MainWindow
         var virtualHeight = SystemParameters.VirtualScreenHeight;
         Width = FiniteClamp(settings.Width, MinWidth, Math.Max(MinWidth, virtualWidth), 1440);
         Height = FiniteClamp(settings.Height, MinHeight, Math.Max(MinHeight, virtualHeight), 900);
+        Loaded += (_, _) => ResizeInspectorWidth(settings.InspectorWidth);
         if (settings.Left is { } left && settings.Top is { } top && double.IsFinite(left) && double.IsFinite(top))
         {
             WindowStartupLocation = WindowStartupLocation.Manual;
@@ -56,6 +57,7 @@ public partial class MainWindow
                 {
                     Width = bounds.Width,
                     Height = bounds.Height,
+                    InspectorWidth = InspectorColumn.ActualWidth > 0 ? InspectorColumn.ActualWidth : InspectorColumn.Width.Value,
                     Left = bounds.Left,
                     Top = bounds.Top,
                     Maximized = WindowState == WindowState.Maximized

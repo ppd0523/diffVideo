@@ -14,6 +14,7 @@ internal static partial class PreviewDiagnostics
         window.UpdateLayout();
         Assert(Math.Abs(window.Width - 1280) < 1 && Math.Abs(window.Height - 780) < 1, "Window size restored");
         Assert(window.WindowStartupLocation == WindowStartupLocation.Manual && double.IsFinite(window.Left) && double.IsFinite(window.Top), "Window position restored and visible");
+        Assert(Math.Abs(window.InspectorColumn.ActualWidth - 300) < 1, "Inspector width restored");
         Assert(vm.CanvasWidth == 1280 && vm.CanvasHeight == 720 && vm.OutputFps == 25 && vm.OutputDurationSeconds == 19 && vm.Quality == OutputQuality.High, "Output settings restored");
         Assert(Math.Abs(window.TimelineRow.ActualHeight - 300) < 1 && Math.Abs(window.TimelineView.ZoomRatio - 4) < 0.001, "Timeline height and zoom restored");
 
@@ -23,6 +24,17 @@ internal static partial class PreviewDiagnostics
         vm.OutputDurationSeconds = 42;
         vm.Quality = OutputQuality.Small;
         window.ResizeTimelineHeight(320);
+        window.ResizeInspectorWidth(1000);
+        window.UpdateLayout();
+        Assert(Math.Abs(window.InspectorColumn.ActualWidth - window.ActualWidth * 0.3) < 1, "Inspector width stops at 30 percent");
+        window.Width = 1120;
+        window.UpdateLayout();
+        Assert(window.InspectorColumn.ActualWidth <= window.ActualWidth * 0.3 + 1, "Inspector width follows window resize");
+        window.Width = 1280;
+        window.ResizeInspectorWidth(100);
+        window.UpdateLayout();
+        Assert(Math.Abs(window.InspectorColumn.ActualWidth - 216) < 1, "Inspector width keeps its 216-pixel minimum");
+        window.ResizeInspectorWidth(320);
         window.UpdateLayout();
         window.TimelineView.RestoreZoomRatio(2);
         window.SaveUserSettings();
@@ -32,6 +44,7 @@ internal static partial class PreviewDiagnostics
             Width = 1920, Height = 1080, FramesPerSecond = 30, DurationSeconds = 42, Quality = OutputQuality.Small
         }, "Output settings round trip");
         Assert(Math.Abs(saved.Timeline.Height - 320) < 1 && Math.Abs(saved.Timeline.ZoomRatio - 2) < 0.001, "Timeline settings round trip");
+        Assert(Math.Abs(saved.Window.InspectorWidth - 320) < 1, "Inspector width round trip");
         Assert(saved.LastExportDirectory == Path.GetDirectoryName(store.SettingsPath), "Last export directory round trip");
         Assert(!Directory.EnumerateFiles(Path.GetDirectoryName(store.SettingsPath)!, "*.tmp").Any(), "Atomic save leaves no temporary file");
 
@@ -42,7 +55,7 @@ internal static partial class PreviewDiagnostics
         Assert(store.Load() == new UserSettings(), "Incomplete settings fall back to defaults");
         await File.WriteAllTextAsync(report, JsonSerializer.Serialize(new { Success = true, SettingsPath = store.SettingsPath, Checks = new[]
         {
-            "Window size and last visible position", "Output settings", "Timeline height and zoom ratio",
+            "Window size and last visible position", "Output settings", "Timeline height and zoom ratio", "Inspector width and resize limits",
             "Atomic JSON save and load", "Damaged or incomplete JSON fallback"
         } }, JsonOptions));
         Directory.Delete(Path.GetDirectoryName(store.SettingsPath)!, recursive: true);

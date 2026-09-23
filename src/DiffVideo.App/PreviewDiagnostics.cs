@@ -72,7 +72,7 @@ internal static partial class PreviewDiagnostics
             settingsStore = new(Path.Combine(settingsDirectory, "settings.json"));
             settingsStore.Save(new()
             {
-                Window = new() { Width = 1280, Height = 780, Left = 80, Top = 60 },
+                Window = new() { Width = 1280, Height = 780, InspectorWidth = 300, Left = 80, Top = 60 },
                 Output = new() { Width = 1280, Height = 720, FramesPerSecond = 25, DurationSeconds = 19, Quality = OutputQuality.High },
                 Timeline = new() { Height = 300, ZoomRatio = 4 },
                 LastExportDirectory = settingsDirectory
@@ -313,6 +313,7 @@ internal static partial class PreviewDiagnostics
                 Assert(window.PreviewDropHost.ActualWidth > window.ActualWidth * 0.72, "Preview uses the space freed by the media sidebar");
                 Assert(window.PreviewDropHost.ActualHeight > window.ActualHeight * 0.43, "Preview is no longer reduced by transport / branding rows");
                 Assert(window.InspectorPanel.ActualWidth <= 216, "Compact inspector");
+                Assert(window.InspectorWidthSplitter.ActualWidth == 8, "Preview and settings width splitter is available");
                 Assert(window.TimelineRow.ActualHeight >= 223 && window.TimelineRow.ActualHeight <= window.ActualHeight / 2 + 1, "Timeline height stays within resize limits");
                 Assert(window.TransportBar.IsAncestorOf(window.PlayButton) && window.TransportBar.IsAncestorOf(window.PlaybackTimeDisplay), "Transport and time belong to the timeline header");
                 Assert(!window.PreviewDropHost.IsAncestorOf(window.PlayButton), "No transport inside preview");
@@ -325,7 +326,7 @@ internal static partial class PreviewDiagnostics
             await CaptureAsync("empty", 1440, 900);
             await CaptureAsync("empty-minimum", 1120, 720);
             var drop = new DataObject(DataFormats.FileDrop, files);
-            Assert(!window.AllowDrop && window.PreviewDropHost.AllowDrop, "File drops are scoped to preview");
+            Assert(!window.AllowDrop && window.PreviewDropHost.AllowDrop && window.TimelineDropHost.AllowDrop, "File drops are scoped to preview and timeline");
             Assert(window.CanAcceptPreviewDrop(drop), "Preview accepts MP4 / MP3 files");
             Assert(!window.CanAcceptPreviewDrop(new DataObject(DataFormats.FileDrop, new[] { "unsupported.txt" })), "Unsupported drops rejected");
             await window.ImportPreviewDropAsync(drop);
