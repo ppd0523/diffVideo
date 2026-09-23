@@ -19,14 +19,24 @@ internal static partial class PreviewDiagnostics
         vm.OutputDurationSeconds = whole + 1;
         Assert(vm.ExportEndSeconds == whole + 1, "Default end follows timeline duration");
         vm.OutputDurationSeconds = whole;
+        window.UpdateLayout();
+        var labelWidth = window.ExportStartHost.ActualWidth;
+        var endLabelLeft = window.ExportEndLabel.TranslatePoint(new Point(), window.TransportBar).X;
         window.ExportStartLabel.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
-        Assert(window.ExportStartInput.Width == 100 && window.ExportStartEditor.Margin.Left == -4 && window.ExportEndHost.Visibility == Visibility.Collapsed,
-            "Boundary editor expands left without shifting its number and hides the opposite label");
+        window.UpdateLayout();
+        Assert(window.ExportStartInput.Width == 100 && window.ExportStartEditor.Margin.Left == -4 && window.ExportEndHost.Visibility == Visibility.Visible &&
+            window.ExportStartHost.ActualWidth > labelWidth && window.ExportEndLabel.TranslatePoint(new Point(), window.TransportBar).X > endLabelLeft,
+            "Boundary editor expands only while editing and shifts the opposite label");
         window.ExportStartInput.Text = "5";
         window.ApplyExportStartButton.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.PreviewMouseDownEvent });
         window.ApplyExportStartButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
         window.PlayButton.Focus();
+        window.UpdateLayout();
+        var endLabelWidth = window.ExportEndHost.ActualWidth;
         window.ExportEndLabel.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+        window.UpdateLayout();
+        Assert(window.ExportEndHost.ActualWidth > endLabelWidth && window.ExportStartHost.Visibility == Visibility.Visible,
+            "End editor expands while the start label stays visible");
         window.ExportEndInput.Text = "12";
         window.ExportEndInput.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window.ExportEndInput), Environment.TickCount, Key.Enter) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
         Assert(vm.ExportStartSeconds == 5 && vm.ExportEndSeconds == 12 && vm.ExportDurationSeconds == 7,

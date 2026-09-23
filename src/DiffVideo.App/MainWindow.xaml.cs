@@ -373,8 +373,6 @@ public partial class MainWindow : Window
             CancelInlineTimeEdit();
             _inlineTimeEdit = kind;
             var (label, editor, input) = InlineTimeControls(kind);
-            if (kind == "Start") { ExportBoundarySeparator.Visibility = ExportEndHost.Visibility = Visibility.Collapsed; }
-            else if (kind == "End") { ExportBoundarySeparator.Visibility = ExportStartHost.Visibility = Visibility.Collapsed; }
             label.Visibility = Visibility.Collapsed;
             editor.Visibility = Visibility.Visible;
             input.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();

@@ -1,9 +1,12 @@
 <Window x:Class="DiffVideo.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:conv="clr-namespace:DiffVideo.App.Converters"
         xmlns:controls="clr-namespace:DiffVideo.App.Controls"
         xmlns:vm="clr-namespace:DiffVideo.App.ViewModels"
+        mc:Ignorable="d"
         Title="DiffVideo" Width="1440" Height="900" MinWidth="1120" MinHeight="720"
         Style="{StaticResource {x:Type Window}}"
         Closing="Window_Closing" PreviewKeyDown="Window_PreviewKeyDown" PreviewKeyUp="Window_PreviewKeyUp" Deactivated="Window_Deactivated">
@@ -444,12 +447,12 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel x:Name="FullInfoGroup" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" IsEnabled="{Binding IsEditingEnabled}">
+                    <StackPanel x:Name="FullInfoGroup" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" IsEnabled="{Binding IsEditingEnabled}">
                         <TextBlock Text="전체" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
-                        <TextBlock x:Name="FullPlaybackTimeDisplay" Text="{Binding FullHeadText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock x:Name="FullPlaybackTimeDisplay" Text="{Binding FullHeadText}" d:Text="00:00.000" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
                         <TextBlock Text="/" Margin="8,0" FontSize="15" VerticalAlignment="Center" />
-                        <Grid>
-                            <TextBlock x:Name="OutputDurationLabel" Text="{Binding OutputDurationText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonDown="InlineTimeLabel_MouseLeftButtonDown" Tag="Duration" ToolTip="클릭하여 전체 길이 편집" />
+                        <Grid MinWidth="134">
+                            <TextBlock x:Name="OutputDurationLabel" Text="{Binding OutputDurationText}" d:Text="00:15.000" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonDown="InlineTimeLabel_MouseLeftButtonDown" Tag="Duration" ToolTip="클릭하여 전체 길이 편집" />
                             <StackPanel x:Name="OutputDurationEditor" Orientation="Horizontal" Visibility="Collapsed" Margin="-4,0,0,0">
                                 <TextBox x:Name="OutputDurationInput" Width="100" Text="{Binding OutputDurationText, Mode=OneWay}" PreviewKeyDown="InlineTimeInput_PreviewKeyDown" LostKeyboardFocus="InlineTimeInput_LostKeyboardFocus" Tag="Duration" ToolTip="전체 길이 · 초 또는 mm:ss.fff 입력" AutomationProperties.Name="전체 길이" />
                                 <Button x:Name="ApplyOutputDurationButton" Content="{StaticResource Icon.Check}" Click="InlineTimeApply_Click" PreviewMouseDown="InlineTimeApply_PreviewMouseDown" Tag="Duration" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="전체 길이 적용" Margin="4,0,0,0" />
@@ -476,30 +479,36 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel x:Name="SegmentInfoGroup" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" IsEnabled="{Binding IsEditingEnabled}">
-                        <TextBlock Text="구간" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
-                        <TextBlock x:Name="PlaybackTimeDisplay" Text="{Binding SegmentHeadText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <TextBlock Text="/" Margin="8,0" FontSize="15" VerticalAlignment="Center" />
-                        <Grid x:Name="ExportStartHost">
-                            <TextBlock x:Name="ExportStartLabel" Text="{Binding ExportStartText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonDown="InlineTimeLabel_MouseLeftButtonDown" Tag="Start" ToolTip="클릭하여 구간 시작 편집" />
-                            <StackPanel x:Name="ExportStartEditor" Orientation="Horizontal" Visibility="Collapsed" Margin="-4,0,0,0">
-                                <TextBox x:Name="ExportStartInput" Width="100" Text="{Binding ExportStartText, Mode=OneWay}" PreviewKeyDown="InlineTimeInput_PreviewKeyDown" LostKeyboardFocus="InlineTimeInput_LostKeyboardFocus" Tag="Start" ToolTip="내보내기 시작" AutomationProperties.Name="내보내기 시작 시각" />
-                                <Button x:Name="ApplyExportStartButton" Content="{StaticResource Icon.Check}" Click="InlineTimeApply_Click" PreviewMouseDown="InlineTimeApply_PreviewMouseDown" Tag="Start" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="구간 시작 적용" Margin="4,0,0,0" />
-                            </StackPanel>
-                        </Grid>
-                        <TextBlock x:Name="ExportBoundarySeparator" Text="~" Margin="8,0" FontSize="15" VerticalAlignment="Center" />
-                        <Grid x:Name="ExportEndHost">
-                            <TextBlock x:Name="ExportEndLabel" Text="{Binding ExportEndText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonDown="InlineTimeLabel_MouseLeftButtonDown" Tag="End" ToolTip="클릭하여 구간 종료 편집" />
-                            <StackPanel x:Name="ExportEndEditor" Orientation="Horizontal" Visibility="Collapsed" Margin="-4,0,0,0">
-                                <TextBox x:Name="ExportEndInput" Width="100" Text="{Binding ExportEndText, Mode=OneWay}" PreviewKeyDown="InlineTimeInput_PreviewKeyDown" LostKeyboardFocus="InlineTimeInput_LostKeyboardFocus" Tag="End" ToolTip="내보내기 종료 경계" AutomationProperties.Name="내보내기 종료 시각" />
-                                <Button x:Name="ApplyExportEndButton" Content="{StaticResource Icon.Check}" Click="InlineTimeApply_Click" PreviewMouseDown="InlineTimeApply_PreviewMouseDown" Tag="End" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="구간 종료 적용" Margin="4,0,0,0" />
-                            </StackPanel>
-                        </Grid>
-                    </StackPanel>
-                    <StackPanel x:Name="SegmentPresetGroup" Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <Button x:Name="SetOverlapRangeButton" Content="교차" Click="SetOverlapRange_Click" IsEnabled="{Binding CanEditExportRange}" ToolTip="두 영상이 동시에 재생되는 구간으로 설정" Style="{StaticResource CompactButton}" Margin="0,0,4,0"/>
-                        <Button x:Name="SetVideoRangeButton" Content="전체" Click="SetVideoRange_Click" IsEnabled="{Binding CanEditExportRange}" ToolTip="두 영상의 최초 시작부터 최종 종료까지 설정" Style="{StaticResource CompactButton}"/>
-                    </StackPanel>
+                    <Grid Grid.Column="0" Grid.ColumnSpan="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel x:Name="SegmentInfoGroup" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" IsEnabled="{Binding IsEditingEnabled}">
+                            <TextBlock Text="구간" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <TextBlock x:Name="PlaybackTimeDisplay" Text="{Binding SegmentHeadText}" d:Text="00:00.000" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="/" Margin="8,0" FontSize="15" VerticalAlignment="Center" />
+                            <Grid x:Name="ExportStartHost">
+                                <TextBlock x:Name="ExportStartLabel" Text="{Binding ExportStartText}" d:Text="00:00.000" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonDown="InlineTimeLabel_MouseLeftButtonDown" Tag="Start" ToolTip="클릭하여 구간 시작 편집" />
+                                <StackPanel x:Name="ExportStartEditor" Orientation="Horizontal" Visibility="Collapsed" Margin="-4,0,0,0">
+                                    <TextBox x:Name="ExportStartInput" Width="100" Text="{Binding ExportStartText, Mode=OneWay}" PreviewKeyDown="InlineTimeInput_PreviewKeyDown" LostKeyboardFocus="InlineTimeInput_LostKeyboardFocus" Tag="Start" ToolTip="내보내기 시작" AutomationProperties.Name="내보내기 시작 시각" />
+                                    <Button x:Name="ApplyExportStartButton" Content="{StaticResource Icon.Check}" Click="InlineTimeApply_Click" PreviewMouseDown="InlineTimeApply_PreviewMouseDown" Tag="Start" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="구간 시작 적용" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock x:Name="ExportBoundarySeparator" Text="~" Margin="8,0" FontSize="15" VerticalAlignment="Center" />
+                            <Grid x:Name="ExportEndHost">
+                                <TextBlock x:Name="ExportEndLabel" Text="{Binding ExportEndText}" d:Text="00:15.000" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonDown="InlineTimeLabel_MouseLeftButtonDown" Tag="End" ToolTip="클릭하여 구간 종료 편집" />
+                                <StackPanel x:Name="ExportEndEditor" Orientation="Horizontal" Visibility="Collapsed" Margin="-4,0,0,0">
+                                    <TextBox x:Name="ExportEndInput" Width="100" Text="{Binding ExportEndText, Mode=OneWay}" PreviewKeyDown="InlineTimeInput_PreviewKeyDown" LostKeyboardFocus="InlineTimeInput_LostKeyboardFocus" Tag="End" ToolTip="내보내기 종료 경계" AutomationProperties.Name="내보내기 종료 시각" />
+                                    <Button x:Name="ApplyExportEndButton" Content="{StaticResource Icon.Check}" Click="InlineTimeApply_Click" PreviewMouseDown="InlineTimeApply_PreviewMouseDown" Tag="End" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="구간 종료 적용" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                        <StackPanel x:Name="SegmentPresetGroup" Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Button x:Name="SetOverlapRangeButton" Content="교차" Click="SetOverlapRange_Click" IsEnabled="{Binding CanEditExportRange}" ToolTip="두 영상이 동시에 재생되는 구간으로 설정" Style="{StaticResource CompactButton}" Margin="0,0,4,0"/>
+                            <Button x:Name="SetVideoRangeButton" Content="전체" Click="SetVideoRange_Click" IsEnabled="{Binding CanEditExportRange}" ToolTip="두 영상의 최초 시작부터 최종 종료까지 설정" Style="{StaticResource CompactButton}"/>
+                        </StackPanel>
+                    </Grid>
                     <StackPanel x:Name="SegmentControlsGroup" Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" IsEnabled="{Binding CanUseSegmentControls}">
                         <Button x:Name="PlayButton" Content="{StaticResource Icon.PlayArrow}" Click="Play_Click" IsEnabled="{Binding CanPlay}" Style="{StaticResource SegmentMaterialIconButton}" Width="42" Height="30" MinHeight="30" ToolTip="재생 (Space) · 현재 재생 위치에서 시작" Margin="0,0,4,0" />
                         <Button x:Name="PauseButton" Content="{StaticResource Icon.Pause}" Click="Pause_Click" IsEnabled="{Binding CanPause}" Style="{StaticResource SegmentMaterialIconButton}" Width="42" Height="30" MinHeight="30" ToolTip="일시정지 (Space) · 현재 위치 유지" Margin="0,0,4,0" />

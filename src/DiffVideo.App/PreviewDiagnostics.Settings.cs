@@ -30,6 +30,14 @@ internal static partial class PreviewDiagnostics
         window.Width = 1120;
         window.UpdateLayout();
         Assert(window.InspectorColumn.ActualWidth <= window.ActualWidth * 0.3 + 1, "Inspector width follows window resize");
+        Assert(((FrameworkElement)window.OutputDurationLabel.Parent).ActualWidth >= 134 &&
+            window.ExportStartHost.ActualWidth < 134 && window.ExportEndHost.ActualWidth < 134,
+            "Segment time labels use their text width until editing");
+        var rangeRight = window.SegmentInfoGroup.TranslatePoint(new Point(window.SegmentInfoGroup.ActualWidth, 0), window.TransportBar).X;
+        var presetLeft = window.SegmentPresetGroup.TranslatePoint(new Point(), window.TransportBar).X;
+        var presetRight = window.SegmentPresetGroup.TranslatePoint(new Point(window.SegmentPresetGroup.ActualWidth, 0), window.TransportBar).X;
+        var controlsLeft = window.SegmentControlsGroup.TranslatePoint(new Point(), window.TransportBar).X;
+        Assert(rangeRight <= presetLeft && presetRight <= controlsLeft, "Timeline range, presets, and playback controls do not overlap at minimum window width");
         window.Width = 1280;
         window.ResizeInspectorWidth(100);
         window.UpdateLayout();
@@ -55,7 +63,7 @@ internal static partial class PreviewDiagnostics
         Assert(store.Load() == new UserSettings(), "Incomplete settings fall back to defaults");
         await File.WriteAllTextAsync(report, JsonSerializer.Serialize(new { Success = true, SettingsPath = store.SettingsPath, Checks = new[]
         {
-            "Window size and last visible position", "Output settings", "Timeline height and zoom ratio", "Inspector width and resize limits",
+            "Window size and last visible position", "Output settings", "Timeline height and zoom ratio", "Inspector width and resize limits", "Timeline time slots and control spacing",
             "Atomic JSON save and load", "Damaged or incomplete JSON fallback"
         } }, JsonOptions));
         Directory.Delete(Path.GetDirectoryName(store.SettingsPath)!, recursive: true);
