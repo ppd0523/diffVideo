@@ -9,10 +9,10 @@ if ([string]::IsNullOrWhiteSpace($Destination)) {
 }
 $Destination = [System.IO.Path]::GetFullPath($Destination)
 
-$version = 'n9.0.1-11-ge47273f4d9'
-$archiveName = 'ffmpeg-n9.0.1-11-ge47273f4d9-win64-lgpl-9.0.zip'
-$expectedHash = '14CE996102BCACCDC8DE62E404DD96C9E6EB4C7AE28A25EB3537817F1E4D60FD'
-$url = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-02-13-13/' + $archiveName
+$version = 'n9.0.2-27-g7e93014c5b'
+$archiveName = 'ffmpeg-n9.0.2-27-g7e93014c5b-win64-lgpl-9.0.zip'
+$expectedHash = '395B6B0E621716CE5FC263AF6388E2F35FDFE0D05A5D3F26E1E2AAD09CC43D7F'
+$url = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-10-14-13-03/' + $archiveName
 $downloadDirectory = Join-Path $projectRoot 'tools\downloads'
 $archivePath = Join-Path $downloadDirectory $archiveName
 $extractDirectory = Join-Path $projectRoot 'tools\ffmpeg-extract'

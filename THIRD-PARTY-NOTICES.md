@@ -7,12 +7,12 @@ not link against FFmpeg libraries.
 
 The portable package uses the LGPL build of FFmpeg from BtbN/FFmpeg-Builds:
 
-- FFmpeg revision: `n9.0.1-11-ge47273f4d9` (build date 2026-09-02)
-- Build release: `autobuild-2026-09-02-13-13`
-- Archive: `ffmpeg-n9.0.1-11-ge47273f4d9-win64-lgpl-9.0.zip`
-- SHA-256: `14CE996102BCACCDC8DE62E404DD96C9E6EB4C7AE28A25EB3537817F1E4D60FD`
-- Binary source: https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2026-09-02-13-13
-- FFmpeg source revision: https://github.com/FFmpeg/FFmpeg/commit/e47273f4d9
+- FFmpeg revision: `n9.0.2-27-g7e93014c5b` (build date 2026-10-14)
+- Build release: `autobuild-2026-10-14-13-03`
+- Archive: `ffmpeg-n9.0.2-27-g7e93014c5b-win64-lgpl-9.0.zip`
+- SHA-256: `395B6B0E621716CE5FC263AF6388E2F35FDFE0D05A5D3F26E1E2AAD09CC43D7F`
+- Binary source: https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2026-10-14-13-03
+- FFmpeg source revision: https://github.com/FFmpeg/FFmpeg/commit/7e93014c5b
 - Build scripts: https://github.com/BtbN/FFmpeg-Builds
 
 The selected build disables `libx264` and `libx265` and is published as the
