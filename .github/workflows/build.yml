@@ -7,8 +7,19 @@ on:
 jobs:
   windows:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check tag matches project version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $tagVersion = '${{ github.ref_name }}'.Substring(1)
+          $projectVersion = (Select-Xml -Path src/DiffVideo.App/DiffVideo.App.csproj -XPath '//Version').Node.InnerText
+          if ($tagVersion -ne $projectVersion) { throw "Tag v$tagVersion does not match <Version> $projectVersion in DiffVideo.App.csproj" }
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
@@ -22,3 +33,23 @@ jobs:
         with:
           name: DiffVideo-win-x64-portable
           path: artifacts/DiffVideo-*-win-x64-portable.zip
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $tag = '${{ github.ref_name }}'
+          $version = $tag.Substring(1)
+          $zip = "artifacts/DiffVideo-$version-win-x64-portable.zip"
+          $previous = git describe --tags --abbrev=0 "$tag^" 2>$null
+          $range = if ($previous) { "$previous..$tag" } else { $tag }
+          $changes = git log --format=%s $range |
+            Where-Object { $_ -match '^(feat|fix)(\(.+\))?!?: ' } |
+            ForEach-Object { '- ' + ($_ -replace '^[^:]+:\s*', '') }
+          if (-not $changes) { $changes = '- 내부 개선' }
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash
+          @('## 변경 사항') + $changes + @('', '## 설치', "zip을 풀고 ``DiffVideo.exe``를 실행합니다. 설치와 .NET 런타임이 필요 없습니다.", '', "SHA-256: ``$hash``") |
+            Set-Content release-notes.md -Encoding utf8
+          gh release create $tag $zip --title "DiffVideo $version" --notes-file release-notes.md
