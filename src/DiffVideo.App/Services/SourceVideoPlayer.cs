@@ -225,7 +225,7 @@ public sealed class SourceVideoPlayer(FfmpegPaths paths, bool forceDecoder = fal
         image.StreamSource = memory;
         image.EndInit();
         image.Freeze();
-        var last = Math.Max(0, (_media!.VideoDuration ?? _media.Duration).TotalSeconds - 1 / Math.Max(1, _media.FramesPerSecond));
+        var last = PreviewTiming.LastFrameSeconds(_media!);
         foreach (var old in _cache.Keys.Where(item => item != Key(0) && item != Key(last)).ToArray())
         {
             _cache.Remove(old);

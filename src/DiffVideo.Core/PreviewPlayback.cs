@@ -8,8 +8,20 @@ public static class PreviewTiming
     {
         var duration = track.Media.VideoDuration?.TotalSeconds ?? track.Media.Duration.TotalSeconds;
         var local = timelineSeconds - track.Start.TotalSeconds;
-        var frameDuration = 1 / Math.Max(1, track.Media.FramesPerSecond);
-        return new(Math.Clamp(local, 0, Math.Max(0, duration - frameDuration)), local >= 0 && local < duration);
+        return new(Math.Clamp(local, 0, LastFrameSeconds(track.Media)), local >= 0 && local < duration);
+    }
+
+    /// <summary>
+    /// A seek time that FFmpeg (-ss returns the first frame at or after it) resolves to the last frame.
+    /// The last frame start is only estimated from the average fps, so aim half a frame early:
+    /// variable-rate phone videos can end slightly before duration - 1/fps, and seeking past
+    /// the real last frame yields no frame at all.
+    /// </summary>
+    public static double LastFrameSeconds(MediaInfo media)
+    {
+        var duration = media.VideoDuration?.TotalSeconds ?? media.Duration.TotalSeconds;
+        var frameDuration = 1 / Math.Max(1, media.FramesPerSecond);
+        return Math.Max(0, duration - frameDuration * 1.5);
     }
 }
 

@@ -9,7 +9,7 @@ public sealed class PreviewPlaybackTests
     [InlineData(0, 0, false)]
     [InlineData(2, 0, true)]
     [InlineData(3.5, 1.5, true)]
-    [InlineData(20, 4.966666667, false)]
+    [InlineData(20, 4.95, false)]
     public void SourceTime_RespectsOffsetAndHeldFrames(double timeline, double expected, bool active)
     {
         var track = TestComposition.Create().Videos[0] with { Start = TimeSpan.FromSeconds(2) };
@@ -17,6 +17,19 @@ public sealed class PreviewPlaybackTests
         var position = PreviewTiming.Map(timeline, track);
         Assert.Equal(expected, position.Seconds, 7);
         Assert.Equal(active, position.IsActive);
+    }
+
+    // FFmpeg -ss T returns the first frame at or after T, so the held-frame time must land
+    // after the second-to-last frame and no later than the real last frame.
+    [Theory]
+    [InlineData(5, 30, 4.933333, 4.966667)] // constant 30 fps
+    [InlineData(24.457, 3307500d / 110203, 24.389600, 24.422922)] // Jinjo_02.mp4: VFR, last frame is shorter than duration - 1/avg fps
+    public void HeldLastFrame_SeeksToTheRealLastFrame(double videoDuration, double fps, double previousFrame, double lastFrame)
+    {
+        var track = TestComposition.Create().Videos[0];
+        track = track with { Media = track.Media with { Duration = TimeSpan.FromSeconds(videoDuration), VideoDuration = TimeSpan.FromSeconds(videoDuration), FramesPerSecond = fps } };
+        var held = PreviewTiming.Map(double.MaxValue, track).Seconds;
+        Assert.InRange(held, previousFrame + 0.000001, lastFrame);
     }
 
     [Fact]
