@@ -48,6 +48,16 @@ if (Test-Path -LiteralPath $zipPath) {
 & $DotnetPath publish (Join-Path $projectRoot 'src\DiffVideo.App\DiffVideo.App.csproj') -c Release -r win-x64 --self-contained true -o $publishDirectory -p:RestoreIgnoreFailedSources=true -p:NuGetAudit=false
 if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 
+# Redistributing FFmpeg (LGPL) and other third-party components requires their notices in the package.
+$requiredFiles = @(
+    'DiffVideo.exe', 'ffmpeg.exe', 'ffprobe.exe',
+    'LICENSE.txt', 'THIRD-PARTY-NOTICES.md',
+    'licenses\FFmpeg-LICENSE.txt', 'licenses\NAudio-LICENSE.txt',
+    'licenses\MaterialIcons-LICENSE.txt', 'licenses\D2Coding-LICENSE.txt'
+)
+$missingFiles = @($requiredFiles | Where-Object { -not (Test-Path -LiteralPath (Join-Path $publishDirectory $_)) })
+if ($missingFiles.Count -gt 0) { throw "Package is missing required files: $($missingFiles -join ', ')" }
+
 if ($RunGuiSmokeTest) {
     & (Join-Path $PSScriptRoot 'Test-GuiStartup.ps1') -ExecutablePath (Join-Path $publishDirectory 'DiffVideo.exe')
 }
@@ -59,7 +69,8 @@ for ($attempt = 0; $attempt -lt 20; $attempt++) {
             Remove-Item -LiteralPath $zipPath -Force
         }
 
-        Compress-Archive -Path (Join-Path $publishDirectory '*') -DestinationPath $zipPath -CompressionLevel Optimal
+        # Archive the folder itself so extraction yields a single $PackageName folder.
+        Compress-Archive -Path $publishDirectory -DestinationPath $zipPath -CompressionLevel Optimal
         $archiveCreated = $true
         break
     }
