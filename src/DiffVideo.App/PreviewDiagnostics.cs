@@ -755,10 +755,31 @@ internal static partial class PreviewDiagnostics
         RaiseKey(window, Key.Space);
         RaiseKey(window, Key.Space, keyUp: true);
         await WaitAsync(() => vm.PlayheadSeconds > paused + 0.2, () => vm.ErrorMessage);
-        Assert(RaiseKey(window, Key.C).Handled && !vm.IsPlaying && vm.CurrentPlaybackState == PlaybackState.Stopped && vm.PlayheadSeconds == vm.ExportStartSeconds,
-            "C stops segment playback at the segment start");
-        Assert(window.StopButton.ToolTip is string stopTip && stopTip.Contains("(C)", StringComparison.Ordinal), "Stop tooltip names the C shortcut");
-        checks.Add("Space start / pause / resume / loading cancellation / one toggle per press / C stop");
+        Assert(RaiseKey(window, Key.V).Handled && !vm.IsPlaying && vm.CurrentPlaybackState == PlaybackState.Stopped && vm.PlayheadSeconds == vm.ExportStartSeconds,
+            "V stops segment playback at the segment start");
+        foreach (var (key, label) in new[] { (Key.F, "F"), (Key.G, "G"), (Key.H, "H"), (Key.Z, "Z"), (Key.X, "X"), (Key.V, "V"), (Key.B, "B"), (Key.N, "N"), (Key.Enter, "Enter"), (Key.E, "E"), (Key.R, "R") })
+        {
+            Assert(window.ShortcutButton(key)?.ToolTip is string tip && tip.Contains("(" + label, StringComparison.Ordinal), $"{label} shortcut is mapped and named in its tooltip");
+        }
+        Assert(window.ShortcutButton(Key.C) == window.PlayButton && window.ShortcutButton(Key.D) == window.FullPlayButton, "C / D play while stopped");
+        var stoppedAt = vm.PlayheadSeconds;
+        Assert(RaiseKey(window, Key.C).Handled && vm.IsPlaying, "C starts segment playback");
+        await WaitAsync(() => vm.PlayheadSeconds > stoppedAt + 0.2, () => vm.ErrorMessage);
+        Assert(window.ShortcutButton(Key.C) == window.PauseButton, "C pauses while playing");
+        RaiseKey(window, Key.C);
+        Assert(!vm.IsPlaying, "C pauses segment playback");
+        var segmentHead = vm.PlayheadSeconds;
+        Assert(RaiseKey(window, Key.N).Handled, "N is handled");
+        await WaitAsync(() => vm.PlayheadSeconds > segmentHead, () => vm.ErrorMessage);
+        var fullHead = vm.FullPlayheadSeconds;
+        Assert(RaiseKey(window, Key.H).Handled, "H is handled");
+        await WaitAsync(() => vm.FullPlayheadSeconds > fullHead, () => vm.ErrorMessage);
+        vm.SelectVideo(vm.Videos[0]);
+        var media = vm.Videos[0].Media!;
+        await vm.ApplyRoiAsync(vm.Videos[0], new(0, 0, media.DisplayWidth / 2, media.DisplayHeight / 2));
+        Assert(RaiseKey(window, Key.R).Handled, "R is handled");
+        await WaitAsync(() => vm.Videos[0].RoiWidth == media.DisplayWidth && vm.Videos[0].RoiHeight == media.DisplayHeight, () => vm.ErrorMessage);
+        checks.Add("Space start / pause / resume / loading cancellation / one toggle per press / transport, range, export and ROI shortcuts");
 
         window.RoiXInput.BringIntoView();
         window.RoiXInput.Focus();
@@ -766,6 +787,7 @@ internal static partial class PreviewDiagnostics
         window.FpsInput.Focus();
         Assert(!RaiseKey(window, Key.Space).Handled && !vm.IsPlaying, "Space stays in FPS input");
         Assert(!RaiseKey(window, Key.C).Handled, "C stays in text inputs");
+        Assert(!RaiseKey(window, Key.Enter).Handled && !vm.IsExporting, "Enter stays in text inputs");
         Assert(MainWindow.IsTextEntry(new PasswordBox()) && MainWindow.IsTextEntry(new RichTextBox()), "Text-entry guard includes password / rich text controls");
         window.PreviewLogicalCanvas.Focus();
         await window.HandleSpacePressAsync(true);

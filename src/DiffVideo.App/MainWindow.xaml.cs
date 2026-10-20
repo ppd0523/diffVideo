@@ -912,22 +912,46 @@ public partial class MainWindow : Window
             e.Handled = true;
         }
         if (Keyboard.Modifiers != ModifierKeys.None || IsTextEntry(Keyboard.FocusedElement as DependencyObject)) { return; }
-        if (e.Key == Key.C)
+        // With the Korean IME on, letter keys arrive as ImeProcessed.
+        var key = e.Key == Key.ImeProcessed ? e.ImeProcessedKey : e.Key;
+        if (ShortcutButton(key) is { } button)
         {
             e.Handled = true;
-            await HandleSegmentStopKeyAsync(e.IsRepeat);
+            PressShortcut(button, e.IsRepeat);
             return;
         }
-        if (e.Key != Key.Space) { return; }
+        if (key != Key.Space) { return; }
         e.Handled = true;
         await HandleSpacePressAsync(e.IsRepeat);
     }
 
-    // Mirrors the segment Stop button, including its enabled state, so the key never does more than the button.
-    internal async Task HandleSegmentStopKeyAsync(bool isRepeat)
+    // D and C toggle: pause while playing, otherwise play.
+    internal Button? ShortcutButton(Key key) => key switch
     {
-        if (isRepeat || ViewModel is null || !StopButton.IsEnabled || IsRoiDragging || _timelineDragActive || _overlayDragTrack is not null || _playheadDragging || _exportRangeThumb is not null || Mouse.Captured is not null) { return; }
-        await ViewModel.StopPlaybackAsync();
+        Key.D => FullPauseButton.IsEnabled ? FullPauseButton : FullPlayButton,
+        Key.F => FullStopButton,
+        Key.G => FullPreviousFrameButton,
+        Key.H => FullNextFrameButton,
+        Key.Z => SetOverlapRangeButton,
+        Key.X => SetVideoRangeButton,
+        Key.C => PauseButton.IsEnabled ? PauseButton : PlayButton,
+        Key.V => StopButton,
+        Key.B => PreviousFrameButton,
+        Key.N => NextFrameButton,
+        Key.Enter => ExportButton,
+        Key.E => EditRoiButton,
+        Key.R => ResetRoiButton,
+        _ => null,
+    };
+
+    // Clicks the button only when it is enabled, so a shortcut never does more than the button. Holding a key repeats frame steps only.
+    private void PressShortcut(Button button, bool isRepeat)
+    {
+        var steps = button == FullPreviousFrameButton || button == FullNextFrameButton || button == PreviousFrameButton || button == NextFrameButton;
+        var roi = button == EditRoiButton || button == ResetRoiButton;
+        if ((isRepeat && !steps) || ViewModel is null || !button.IsEnabled || (roi && ViewModel.SelectedVideo?.Media is null)) { return; }
+        if (IsRoiDragging || _timelineDragActive || _overlayDragTrack is not null || _playheadDragging || _exportRangeThumb is not null || Mouse.Captured is not null) { return; }
+        button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
     }
 
     internal async Task HandleSpacePressAsync(bool isRepeat)
