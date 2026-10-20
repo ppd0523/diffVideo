@@ -575,7 +575,7 @@
                               IsEnabled="{Binding IsEditingEnabled}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <UniformGrid Columns="1" />
+                                <controls:CappedRowsPanel />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.Resources>
@@ -633,7 +633,7 @@
                             <ItemsControl x:Name="TimelineTrackClips" Grid.Row="1" ItemsSource="{Binding TimelineTracks}" IsEnabled="{Binding IsEditingEnabled}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <UniformGrid Columns="1" />
+                                        <controls:CappedRowsPanel />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.Resources>

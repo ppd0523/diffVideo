@@ -512,7 +512,7 @@ public partial class MainWindow : Window
     private void TimelineTrackReorder_MouseMove(object sender, MouseEventArgs e)
     {
         if (ViewModel is not { } vm || _reorderTrack is null || e.LeftButton != MouseButtonState.Pressed) { return; }
-        var rowHeight = TimelineTrackNames.ActualHeight / Math.Max(1, vm.TimelineTracks.Count);
+        var rowHeight = TrackNameRow(0)?.ActualHeight ?? 0;
         if (rowHeight <= 0) { return; }
 
         // One whole row of travel moves the track one place; anything less is just a twitch.
