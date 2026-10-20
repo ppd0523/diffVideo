@@ -314,8 +314,6 @@
                                     <StackPanel Orientation="Horizontal">
                                         <Button x:Name="SendBackwardButton" Content="{StaticResource Icon.FlipToBack}" Click="SendBackward_Click" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="선택한 영상을 뒤로 보내기" Margin="0,0,8,0" />
                                         <Button x:Name="BringForwardButton" Content="{StaticResource Icon.FlipToFront}" Click="BringForward_Click" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="선택한 영상을 앞으로 가져오기" />
-                                        <Border Width="1" Height="20" Background="{StaticResource HairlineBrush}" Margin="12,0" VerticalAlignment="Center" />
-                                        <Button x:Name="ResetRoiButton" Content="{StaticResource Icon.CropFree}" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="선택 영상의 ROI를 원본 전체로 복원" Click="ResetRoi_Click" IsEnabled="{Binding SelectedVideo.HasMedia}" />
                                     </StackPanel>
                                 </StackPanel>
                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -392,7 +390,11 @@
                                             </Button>
                                         </StackPanel>
                                         <Border Height="1" Background="{StaticResource SoftHairlineBrush}" Margin="0,11,0,0" />
-                                        <TextBlock Text="자르기" Style="{StaticResource FieldLabel}" />
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="자르기" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,12,8,8" />
+                                            <Button x:Name="EditRoiButton" Content="{StaticResource Icon.Crop}" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="별도 창에서 ROI 편집 · 프리뷰에서는 오른쪽 버튼 드래그" Click="EditRoi_Click" IsEnabled="{Binding HasMedia}" Margin="0,4,4,0" />
+                                            <Button x:Name="ResetRoiButton" Content="{StaticResource Icon.CropFree}" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="ROI 초기화 · 자르기만 원본 전체로 되돌리고 배치·시작 시각·오디오는 유지" Click="ResetRoi_Click" IsEnabled="{Binding HasMedia}" Margin="0,4,0,0" />
+                                        </StackPanel>
                                         <TextBlock Text="X / Y" FontSize="11" Margin="0,0,0,4" />
                                         <UniformGrid Columns="2">
                                             <TextBox Padding="3.6,2.4" MinHeight="30" x:Name="RoiXInput" Text="{Binding RoiX, UpdateSourceTrigger=LostFocus}" Margin="0,0,4,0" AutomationProperties.Name="ROI X" />
@@ -403,8 +405,7 @@
                                             <TextBox Padding="3.6,2.4" MinHeight="30" x:Name="RoiWidthInput" Text="{Binding RoiWidth, UpdateSourceTrigger=LostFocus}" Margin="0,0,4,0" AutomationProperties.Name="ROI 너비" />
                                             <TextBox Padding="3.6,2.4" MinHeight="30" x:Name="RoiHeightInput" Text="{Binding RoiHeight, UpdateSourceTrigger=LostFocus}" Margin="4,0,0,0" AutomationProperties.Name="ROI 높이" />
                                         </UniformGrid>
-                                        <Button x:Name="EditRoiButton" Content="{StaticResource Icon.Crop}" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" HorizontalAlignment="Left" ToolTip="별도 창에서 ROI 편집 · 프리뷰에서는 오른쪽 버튼 드래그" Click="EditRoi_Click" Margin="0,0,0,8" />
-                                        <Border Height="1" Background="{StaticResource SoftHairlineBrush}" Margin="0,12,0,0" />
+                                        <Border Height="1" Background="{StaticResource SoftHairlineBrush}" Margin="0,20,0,0" />
                                         <Grid Margin="0,12,0,0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
