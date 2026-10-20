@@ -44,8 +44,9 @@ Windows 11에서 MP4 영상(최대 4개)과 MP3 음원(최대 4개)을 하나의
 .\build.bat -SkipTests           # 테스트 생략
 ```
 
-결과: `artifacts/DiffVideo-win-x64-portable.zip`.
-버전별 배포는 `-PackageName DiffVideo-0.4.0-win-x64`로 만듭니다.
+결과: `artifacts/DiffVideo-<버전>-win-x64-portable.zip`.
+버전은 `src/DiffVideo.App/DiffVideo.App.csproj`의 `<Version>`을 올려 바꿉니다.
+한 번만 다른 버전으로 빌드하려면 `.\build.bat -Version 0.5.0`처럼 지정합니다.
 
 ## 라이선스
 

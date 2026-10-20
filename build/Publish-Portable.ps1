@@ -1,13 +1,18 @@
 param(
     [string]$DotnetPath = 'dotnet',
-    [ValidatePattern('^DiffVideo(?:-[0-9]+\.[0-9]+\.[0-9]+)?-win-x64$')]
-    [string]$PackageName = 'DiffVideo-win-x64',
+    # Defaults to <Version> in DiffVideo.App.csproj; pass -Version to override a single build.
+    [ValidatePattern('^[0-9]+\.[0-9]+\.[0-9]+$')]
+    [string]$Version,
     [switch]$SkipTests,
     [switch]$RunGuiSmokeTest
 )
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$appProject = Join-Path $projectRoot 'src\DiffVideo.App\DiffVideo.App.csproj'
+if (-not $Version) { $Version = (Select-Xml -Path $appProject -XPath '//Version').Node.InnerText }
+if ($Version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') { throw "Invalid <Version> in ${appProject}: '$Version'" }
+$PackageName = "DiffVideo-$Version-win-x64"
 $artifactsRoot = Join-Path $projectRoot 'artifacts'
 $publishDirectory = Join-Path $artifactsRoot $PackageName
 $zipPath = Join-Path $artifactsRoot "$PackageName-portable.zip"
@@ -35,7 +40,7 @@ foreach ($candidate in @('DiffVideo.exe', 'ffmpeg.exe', 'ffprobe.exe')) {
             $lockCheck = [IO.File]::Open($candidatePath, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
             $lockCheck.Dispose()
         }
-        catch { throw "Package file is in use; close the application or choose a new -PackageName. No package files were removed: $candidatePath" }
+        catch { throw "Package file is in use; close the application or choose a new -Version. No package files were removed: $candidatePath" }
     }
 }
 if (Test-Path -LiteralPath $publishDirectory) {
@@ -45,7 +50,7 @@ if (Test-Path -LiteralPath $zipPath) {
     Remove-Item -LiteralPath $zipPath -Force
 }
 
-& $DotnetPath publish (Join-Path $projectRoot 'src\DiffVideo.App\DiffVideo.App.csproj') -c Release -r win-x64 --self-contained true -o $publishDirectory -p:RestoreIgnoreFailedSources=true -p:NuGetAudit=false
+& $DotnetPath publish $appProject -c Release -r win-x64 --self-contained true -o $publishDirectory -p:Version=$Version -p:RestoreIgnoreFailedSources=true -p:NuGetAudit=false
 if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 
 # Redistributing FFmpeg (LGPL) and other third-party components requires their notices in the package.

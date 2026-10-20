@@ -1,5 +1,6 @@
 param(
-    [string]$ExecutablePath = (Join-Path $PSScriptRoot '..\artifacts\DiffVideo-win-x64\DiffVideo.exe'),
+    # Newest versioned package when run on its own; Publish-Portable passes the exact path.
+    [string]$ExecutablePath = (Get-ChildItem (Join-Path $PSScriptRoot '..\artifacts\DiffVideo-*-win-x64\DiffVideo.exe') | Sort-Object LastWriteTime | Select-Object -Last 1).FullName,
     [int]$TimeoutSeconds = 12,
     [int]$StableSeconds = 3
 )
