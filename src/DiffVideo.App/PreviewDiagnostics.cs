@@ -755,14 +755,17 @@ internal static partial class PreviewDiagnostics
         RaiseKey(window, Key.Space);
         RaiseKey(window, Key.Space, keyUp: true);
         await WaitAsync(() => vm.PlayheadSeconds > paused + 0.2, () => vm.ErrorMessage);
-        await vm.PausePlaybackAsync();
-        checks.Add("Space start / pause / resume / loading cancellation / one toggle per press");
+        Assert(RaiseKey(window, Key.C).Handled && !vm.IsPlaying && vm.CurrentPlaybackState == PlaybackState.Stopped && vm.PlayheadSeconds == vm.ExportStartSeconds,
+            "C stops segment playback at the segment start");
+        Assert(window.StopButton.ToolTip is string stopTip && stopTip.Contains("(C)", StringComparison.Ordinal), "Stop tooltip names the C shortcut");
+        checks.Add("Space start / pause / resume / loading cancellation / one toggle per press / C stop");
 
         window.RoiXInput.BringIntoView();
         window.RoiXInput.Focus();
         Assert(!RaiseKey(window, Key.Space).Handled && !vm.IsPlaying, "Space stays in numeric/text inputs");
         window.FpsInput.Focus();
         Assert(!RaiseKey(window, Key.Space).Handled && !vm.IsPlaying, "Space stays in FPS input");
+        Assert(!RaiseKey(window, Key.C).Handled, "C stays in text inputs");
         Assert(MainWindow.IsTextEntry(new PasswordBox()) && MainWindow.IsTextEntry(new RichTextBox()), "Text-entry guard includes password / rich text controls");
         window.PreviewLogicalCanvas.Focus();
         await window.HandleSpacePressAsync(true);

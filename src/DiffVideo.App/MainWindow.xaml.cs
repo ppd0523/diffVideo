@@ -899,9 +899,23 @@ public partial class MainWindow : Window
             CancelTimelineDrag();
             e.Handled = true;
         }
-        if (e.Key != Key.Space || Keyboard.Modifiers != ModifierKeys.None || IsTextEntry(Keyboard.FocusedElement as DependencyObject)) { return; }
+        if (Keyboard.Modifiers != ModifierKeys.None || IsTextEntry(Keyboard.FocusedElement as DependencyObject)) { return; }
+        if (e.Key == Key.C)
+        {
+            e.Handled = true;
+            await HandleSegmentStopKeyAsync(e.IsRepeat);
+            return;
+        }
+        if (e.Key != Key.Space) { return; }
         e.Handled = true;
         await HandleSpacePressAsync(e.IsRepeat);
+    }
+
+    // Mirrors the segment Stop button, including its enabled state, so the key never does more than the button.
+    internal async Task HandleSegmentStopKeyAsync(bool isRepeat)
+    {
+        if (isRepeat || ViewModel is null || !StopButton.IsEnabled || IsRoiDragging || _timelineDragActive || _overlayDragTrack is not null || _playheadDragging || _exportRangeThumb is not null || Mouse.Captured is not null) { return; }
+        await ViewModel.StopPlaybackAsync();
     }
 
     internal async Task HandleSpacePressAsync(bool isRepeat)
