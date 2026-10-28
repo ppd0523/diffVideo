@@ -1090,13 +1090,6 @@ public partial class MainWindow : Window
         _timelineDragStartLabel = null;
     }
 
-    private static TextBlock? FindStartLabel(Border border)
-    {
-        if (border.Child is not Panel panel)
-        {
-            return null;
-        }
-
-        return panel.Children.OfType<TextBlock>().FirstOrDefault(item => Equals(item.Tag, "StartLabel"));
-    }
+    private static TextBlock? FindStartLabel(Border border) =>
+        Descendant<TextBlock>(border, text => Equals(text.Tag, "StartLabel"));
 }

@@ -74,6 +74,10 @@ public sealed class FfmpegIntegrationTests
             Assert.Equal(48000, wav.AudioSampleRate);
             Assert.InRange(wav.Duration.TotalSeconds, 1.9, 2.1);
             await Assert.ThrowsAsync<InvalidDataException>(() => probe.ProbeAsync(fakeWavPath));
+
+            var peaks = await new WaveformService(paths).LoadPeaksAsync(wavPath, 100);
+            Assert.Equal(100, peaks.Length);
+            Assert.All(peaks, peak => Assert.InRange(peak, 0.1, 0.15)); // lavfi sine 기본 진폭은 1/8
         }
         finally { Directory.Delete(temp, recursive: true); }
     }

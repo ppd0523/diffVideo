@@ -685,6 +685,8 @@
                                                         <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Canvas}" />
                                                     </MultiBinding>
                                                 </Canvas.Left>
+                                                <Grid>
+                                                <Rectangle Fill="{StaticResource TertiaryTextBrush}" OpacityMask="{Binding WaveformMask, TargetNullValue={x:Static Brushes.Transparent}}" Margin="0,2" IsHitTestVisible="False" />
                                                 <Grid Margin="12,0" VerticalAlignment="Center">
                                                     <TextBlock Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"
                                                    Visibility="{Binding IsEditingStart, Converter={StaticResource InverseBoolToVisibility}}" />
@@ -693,6 +695,7 @@
                                                      IsVisibleChanged="TrackStartInput_IsVisibleChanged" PreviewKeyDown="TrackStartInput_PreviewKeyDown" LostKeyboardFocus="TrackStartInput_LostKeyboardFocus" />
                                                         <Button Content="{StaticResource Icon.Check}" Click="TrackStartApply_Click" PreviewMouseDown="TrackStartApply_PreviewMouseDown" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="시작 시각 적용" Margin="4,0,0,0" />
                                                     </StackPanel>
+                                                </Grid>
                                                 </Grid>
                                             </Border>
                                         </Canvas>

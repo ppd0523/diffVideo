@@ -1,3 +1,5 @@
+using System.Windows;
+using System.Windows.Media;
 using DiffVideo.Core;
 
 namespace DiffVideo.App.ViewModels;
@@ -214,6 +216,7 @@ public sealed class AudioTrackViewModel : ObservableObject, ITimelineTrack
     private double _volumePercent = 30;
     private bool _isEditingStart;
     private string _startEditText = "";
+    private Brush? _waveformMask;
 
     public MediaInfo? Media
     {
@@ -247,6 +250,43 @@ public sealed class AudioTrackViewModel : ObservableObject, ITimelineTrack
         StartSeconds = 0;
         IncludeAudio = true;
         VolumePercent = 30;
+        WaveformMask = null;
+    }
+
+    /// <summary>블록 크기에 맞춰 늘어나는 파형 모양. 색은 XAML이 정하도록 불투명 마스크로 둔다.</summary>
+    public Brush? WaveformMask { get => _waveformMask; private set => SetProperty(ref _waveformMask, value); }
+
+    public void SetWaveform(IReadOnlyList<double> peaks)
+    {
+        var levels = Waveform.Scale(peaks);
+        if (levels.Length == 0)
+        {
+            WaveformMask = null;
+            return;
+        }
+
+        // 가운데(y=1)를 기준으로 위쪽 윤곽을 따라가고 아래쪽으로 되돌아오는 대칭 도형.
+        var outline = new List<Point>(levels.Length * 2 + 1);
+        for (var index = 0; index < levels.Length; index++) { outline.Add(new(index + 0.5, 1 - levels[index])); }
+        outline.Add(new(levels.Length, 1));
+        for (var index = levels.Length - 1; index >= 0; index--) { outline.Add(new(index + 0.5, 1 + levels[index])); }
+        var geometry = new StreamGeometry();
+        using (var context = geometry.Open())
+        {
+            context.BeginFigure(new Point(0, 1), isFilled: true, isClosed: true);
+            context.PolyLineTo(outline, isStroked: false, isSmoothJoin: false);
+        }
+
+        geometry.Freeze();
+        // Viewbox를 고정해야 조용한 음원도 도형 경계로 늘어나지 않고 정해진 높이로 그려진다.
+        var brush = new DrawingBrush(new GeometryDrawing(Brushes.Black, null, geometry))
+        {
+            Viewbox = new Rect(0, 0, levels.Length, 2),
+            ViewboxUnits = BrushMappingMode.Absolute,
+            Stretch = Stretch.Fill
+        };
+        brush.Freeze();
+        WaveformMask = brush;
     }
 
     public AudioTrack? ToModel() => Media is null

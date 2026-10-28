@@ -16,6 +16,7 @@ public enum PlaybackScope { Segment, Full }
 public sealed partial class MainViewModel : ObservableObject, IDisposable
 {
     private readonly MediaProbeService _probeService;
+    private readonly WaveformService _waveformService;
     private readonly FfmpegPreviewService _previewService;
     private readonly FfmpegExportService _exportService;
     private readonly PlayerPreviewSession _playerPreview;
@@ -56,6 +57,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public MainViewModel(FfmpegPaths paths)
     {
         _probeService = new(paths);
+        _waveformService = new(paths);
         _previewService = new(paths);
         _exportService = new(paths);
         _playerPreview = new(paths);
@@ -362,6 +364,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                     track.SetMedia(media);
                     Audios.Add(track);
                     OnPropertyChanged(nameof(CanAddAudio));
+                    _ = LoadWaveformAsync(track, path);
                     continue;
                 }
 
@@ -1069,6 +1072,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _pendingInteractiveTrack = null;
         _interactivePreviewRevision++;
         _interactivePreviewCancellation?.Cancel();
+    }
+
+    // 파형은 보조 표시라 로딩을 막지 않고, 실패하면 파형 없이 둔다.
+    private async Task LoadWaveformAsync(AudioTrackViewModel track, string path)
+    {
+        try
+        {
+            var peaks = await Task.Run(() => _waveformService.LoadPeaksAsync(path, 2000));
+            if (track.Media?.Path == path) { track.SetWaveform(peaks); }
+        }
+        catch (Exception exception) when (exception is InvalidDataException or IOException or System.ComponentModel.Win32Exception)
+        {
+        }
     }
 
     private void TrackPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
