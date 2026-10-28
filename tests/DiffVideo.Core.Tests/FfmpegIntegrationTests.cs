@@ -55,6 +55,30 @@ public sealed class FfmpegIntegrationTests
     }
 
     [Fact]
+    public async Task Probe_AcceptsWavAudioAndRejectsMislabeledWav()
+    {
+        var ffmpegBin = Environment.GetEnvironmentVariable("DIFFVIDEO_FFMPEG_BIN");
+        if (string.IsNullOrWhiteSpace(ffmpegBin)) { return; }
+        var paths = new FfmpegPaths(Path.Combine(ffmpegBin, "ffmpeg.exe"), Path.Combine(ffmpegBin, "ffprobe.exe"));
+        var temp = Path.Combine(Path.GetTempPath(), "DiffVideo.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(temp);
+        try
+        {
+            var wavPath = Path.Combine(temp, "tone.wav");
+            var fakeWavPath = Path.Combine(temp, "fake.wav");
+            await RunAsync(paths.Ffmpeg, ["-y", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2", "-c:a", "pcm_s16le", wavPath]);
+            await RunAsync(paths.Ffmpeg, ["-y", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2", "-c:a", "libmp3lame", "-f", "mp3", fakeWavPath]);
+            var probe = new MediaProbeService(paths);
+            var wav = await probe.ProbeAsync(wavPath);
+            Assert.Equal(MediaKind.Audio, wav.Kind);
+            Assert.Equal(48000, wav.AudioSampleRate);
+            Assert.InRange(wav.Duration.TotalSeconds, 1.9, 2.1);
+            await Assert.ThrowsAsync<InvalidDataException>(() => probe.ProbeAsync(fakeWavPath));
+        }
+        finally { Directory.Delete(temp, recursive: true); }
+    }
+
+    [Fact]
     public async Task Export_CreatesExpectedDurationH264AacMp4()
     {
         var ffmpegBin = Environment.GetEnvironmentVariable("DIFFVIDEO_FFMPEG_BIN");

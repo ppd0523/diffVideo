@@ -16,10 +16,11 @@ public sealed class MediaProbeService(FfmpegPaths paths)
         }
 
         var extension = Path.GetExtension(path);
-        if (!extension.Equals(".mp4", StringComparison.OrdinalIgnoreCase) &&
-            !extension.Equals(".mp3", StringComparison.OrdinalIgnoreCase))
+        // 음원 확장자 → ffprobe format_name
+        string? audioFormat = extension.ToLowerInvariant() switch { ".mp3" => "mp3", ".wav" => "wav", _ => null };
+        if (audioFormat is null && !extension.Equals(".mp4", StringComparison.OrdinalIgnoreCase))
         {
-            throw new NotSupportedException("MP4 영상과 MP3 음원만 지원합니다.");
+            throw new NotSupportedException("MP4 영상과 MP3/WAV 음원만 지원합니다.");
         }
 
         var result = await ProcessRunner.RunTextAsync(
@@ -48,17 +49,17 @@ public sealed class MediaProbeService(FfmpegPaths paths)
             throw new InvalidDataException("확장자는 MP4이지만 실제 파일 컨테이너가 MP4가 아닙니다.");
         }
 
-        if (extension.Equals(".mp3", StringComparison.OrdinalIgnoreCase) &&
-            !containerNames.Contains("mp3", StringComparer.OrdinalIgnoreCase))
+        if (audioFormat is not null)
         {
-            throw new InvalidDataException("확장자는 MP3이지만 실제 파일 형식이 MP3가 아닙니다.");
-        }
+            var label = audioFormat.ToUpperInvariant();
+            if (!containerNames.Contains(audioFormat, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException($"확장자는 {label}이지만 실제 파일 형식이 {label}가 아닙니다.");
+            }
 
-        if (extension.Equals(".mp3", StringComparison.OrdinalIgnoreCase))
-        {
             if (audio.ValueKind == JsonValueKind.Undefined)
             {
-                throw new InvalidDataException("MP3 파일에 재생 가능한 오디오 스트림이 없습니다.");
+                throw new InvalidDataException($"{label} 파일에 재생 가능한 오디오 스트림이 없습니다.");
             }
 
             return new(

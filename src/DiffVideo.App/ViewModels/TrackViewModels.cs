@@ -230,11 +230,11 @@ public sealed class AudioTrackViewModel : ObservableObject, ITimelineTrack
         }
     }
 
-    public string Name => "MP3";
+    public string Name => "음원";
     public bool IsEditingStart { get => _isEditingStart; set => SetProperty(ref _isEditingStart, value); }
     public string StartEditText { get => _startEditText; set => SetProperty(ref _startEditText, value); }
-    public string DisplayName => Media?.DisplayName ?? "선택적 MP3";
-    public string Details => Media is null ? "MP3 파일을 놓으세요" : $"{Media.Codec.ToUpperInvariant()} · {Media.Duration:mm\\:ss\\.f}";
+    public string DisplayName => Media?.DisplayName ?? "선택적 음원";
+    public string Details => Media is null ? "MP3/WAV 파일을 놓으세요" : $"{Media.Codec.ToUpperInvariant()} · {Media.Duration:mm\\:ss\\.f}";
     public bool HasMedia => Media is not null;
     public double DurationSeconds => Media?.Duration.TotalSeconds ?? 0;
     public double StartSeconds { get => _startSeconds; set => SetProperty(ref _startSeconds, Math.Max(0, value)); }

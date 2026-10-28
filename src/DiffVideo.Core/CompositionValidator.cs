@@ -29,7 +29,7 @@ public static class CompositionValidator
             var prefix = $"AUDIO_{index + 1}";
             if (audio.Media.Kind != MediaKind.Audio)
             {
-                issues.Add(new($"{prefix}_KIND", "음원 트랙에는 MP3 오디오 파일만 사용할 수 있습니다."));
+                issues.Add(new($"{prefix}_KIND", "음원 트랙에는 MP3/WAV 오디오 파일만 사용할 수 있습니다."));
             }
 
             if (audio.Start < TimeSpan.Zero)

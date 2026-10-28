@@ -191,9 +191,9 @@
                         </Border.Style>
                         <Button Click="OpenFiles_Click" IsEnabled="{Binding IsEditingEnabled}"
                                     Width="240" Height="176" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                    ToolTip="영상 프리뷰 · MP4 영상 또는 MP3 음원을 끌어 놓거나 클릭하여 열기"
+                                    ToolTip="영상 프리뷰 · MP4 영상 또는 MP3/WAV 음원을 끌어 놓거나 클릭하여 열기"
                                     AutomationProperties.Name="영상 또는 음원 열기"
-                                    AutomationProperties.HelpText="영상 프리뷰 구역입니다. MP4 영상 또는 MP3 음원을 끌어 놓을 수 있습니다.">
+                                    AutomationProperties.HelpText="영상 프리뷰 구역입니다. MP4 영상 또는 MP3/WAV 음원을 끌어 놓을 수 있습니다.">
                             <Button.Style>
                                 <Style TargetType="Button">
                                     <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
@@ -240,7 +240,7 @@
                     <Border x:Name="PreviewDropHint" Visibility="Collapsed" IsHitTestVisible="False" Background="#E6FAFAF9" BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="3" CornerRadius="0" Panel.ZIndex="110">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <ContentControl Content="{StaticResource Icon.FolderOpen}" Style="{StaticResource MaterialIcon}" Width="40" Height="40" HorizontalAlignment="Center" Margin="0,0,0,12" />
-                            <TextBlock Text="놓아서 MP4 / MP3 추가" FontSize="20" FontWeight="SemiBold" />
+                            <TextBlock Text="놓아서 MP4 / MP3 / WAV 추가" FontSize="20" FontWeight="SemiBold" />
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -601,7 +601,7 @@
                                         Click="TimelineAudioRemove_Click" ToolTip="이 음원 트랙 제거" AutomationProperties.Name="음원 트랙 제거"
                                         IsEnabled="{Binding DataContext.IsEditingEnabled, RelativeSource={RelativeSource AncestorType=Window}}" />
                                     <CheckBox x:Name="Mp3AudioCheckBox" DockPanel.Dock="Right" Style="{StaticResource TimelineAudioIconCheckBox}" IsChecked="{Binding IncludeAudio}" IsEnabled="{Binding HasMedia}"/>
-                                    <Slider DockPanel.Dock="Right" Width="42" Margin="2,0,4,0" Minimum="0" Maximum="200" Value="{Binding VolumePercent}" ToolTip="MP3 볼륨 0~200%" AutomationProperties.Name="MP3 볼륨"/>
+                                    <Slider DockPanel.Dock="Right" Width="42" Margin="2,0,4,0" Minimum="0" Maximum="200" Value="{Binding VolumePercent}" ToolTip="음원 볼륨 0~200%" AutomationProperties.Name="음원 볼륨"/>
                                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,6,0">
                                         <ContentControl Content="{StaticResource Icon.MusicNote}" Style="{StaticResource MaterialIcon}" Width="18" Height="18"/>
                                     </StackPanel>
@@ -689,7 +689,7 @@
                                                     <TextBlock Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"
                                                    Visibility="{Binding IsEditingStart, Converter={StaticResource InverseBoolToVisibility}}" />
                                                     <StackPanel Orientation="Horizontal" Margin="-4,0,0,0" Visibility="{Binding IsEditingStart, Converter={StaticResource BoolToVisibility}}">
-                                                        <TextBox Width="100" Text="{Binding StartEditText, UpdateSourceTrigger=PropertyChanged}" ToolTip="MP3 시작 시각"
+                                                        <TextBox Width="100" Text="{Binding StartEditText, UpdateSourceTrigger=PropertyChanged}" ToolTip="음원 시작 시각"
                                                      IsVisibleChanged="TrackStartInput_IsVisibleChanged" PreviewKeyDown="TrackStartInput_PreviewKeyDown" LostKeyboardFocus="TrackStartInput_LostKeyboardFocus" />
                                                         <Button Content="{StaticResource Icon.Check}" Click="TrackStartApply_Click" PreviewMouseDown="TrackStartApply_PreviewMouseDown" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="시작 시각 적용" Margin="4,0,0,0" />
                                                     </StackPanel>

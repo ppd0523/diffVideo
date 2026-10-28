@@ -284,8 +284,8 @@ public partial class MainWindow : Window
 
         var dialog = new OpenFileDialog
         {
-            Title = "MP4 영상과 MP3 음원 선택",
-            Filter = "지원 미디어 (*.mp4;*.mp3)|*.mp4;*.mp3|MP4 영상 (*.mp4)|*.mp4|MP3 음원 (*.mp3)|*.mp3",
+            Title = "MP4 영상과 MP3/WAV 음원 선택",
+            Filter = "지원 미디어 (*.mp4;*.mp3;*.wav)|*.mp4;*.mp3;*.wav|MP4 영상 (*.mp4)|*.mp4|음원 (*.mp3;*.wav)|*.mp3;*.wav",
             Multiselect = true,
             CheckFileExists = true
         };
@@ -1021,7 +1021,8 @@ public partial class MainWindow : Window
 
     private static bool IsSupportedFile(string path) =>
         Path.GetExtension(path).Equals(".mp4", StringComparison.OrdinalIgnoreCase) ||
-        Path.GetExtension(path).Equals(".mp3", StringComparison.OrdinalIgnoreCase);
+        Path.GetExtension(path).Equals(".mp3", StringComparison.OrdinalIgnoreCase) ||
+        Path.GetExtension(path).Equals(".wav", StringComparison.OrdinalIgnoreCase);
 
     private static Canvas? VisualTreeParentCanvas(DependencyObject element)
     {
