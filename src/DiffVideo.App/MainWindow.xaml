@@ -117,7 +117,7 @@
                 <ColumnDefinition Width="8" />
                 <ColumnDefinition x:Name="InspectorColumn" Width="216" MinWidth="216" />
             </Grid.ColumnDefinitions>
-            <Border x:Name="PreviewDropHost" Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="0" Padding="12"
+            <Border x:Name="PreviewDropHost" Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="0"
                         AllowDrop="True" Drop="Media_Drop" DragOver="Media_DragOver" DragLeave="Preview_DragLeave" SizeChanged="PreviewDropHost_SizeChanged"
                         ToolTip="정지·일시정지: 왼쪽 드래그로 이동 · 변/모서리로 크기 조절 · 오른쪽 드래그로 ROI 지정 · Esc 취소 · Space 재생/일시정지">
                 <Grid>
