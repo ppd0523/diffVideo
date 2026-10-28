@@ -63,6 +63,16 @@ internal static partial class PreviewDiagnostics
         Assert(Math.Abs(vm.ExportDurationSeconds - 1d / vm.OutputFps) < 1e-8, "Crossing boundary clamps to one frame");
         window.CancelExportRangeDrag();
         Assert(vm.ExportEndSeconds == 12, "Cancelled drag restores end");
+        var durationBefore = vm.OutputDurationSeconds;
+        Assert(window.BeginExportRangeDrag(window.ExportEndHandle), "End handle drag begins for extension");
+        window.UpdateExportRangeDrag(durationBefore + 10);
+        Assert(Math.Abs(vm.OutputDurationSeconds - (durationBefore + 10)) < 1e-6 && vm.ExportEndSeconds == vm.OutputDurationSeconds,
+            $"Dragging end past the timeline extends it: duration={vm.OutputDurationSeconds}, end={vm.ExportEndSeconds}");
+        window.UpdateExportRangeDrag(durationBefore - 1);
+        Assert(vm.OutputDurationSeconds == durationBefore, "Dragging back shrinks only to the original duration");
+        window.UpdateExportRangeDrag(durationBefore + 5);
+        window.CancelExportRangeDrag();
+        Assert(vm.OutputDurationSeconds == durationBefore && vm.ExportEndSeconds == 12, "Cancelled extension restores duration and end");
         window.TimelineView.Fit(); window.UpdateTimeline();
         await vm.RefreshStillPreviewAsync();
         SaveScreenshot(window, Path.ChangeExtension(report, "png"));

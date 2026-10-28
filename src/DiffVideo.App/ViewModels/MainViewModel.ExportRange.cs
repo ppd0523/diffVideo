@@ -20,6 +20,20 @@ public sealed partial class MainViewModel
         ApplyExportRange(start ? range.MoveStart(seconds, OutputFps) : range.MoveEnd(seconds, OutputDurationSeconds, OutputFps));
     }
 
+    /// <summary>끝 경계를 전체 길이 너머로 끌면 전체 길이도 늘린다. 드래그 시작 때 길이(minimumDuration) 아래로는 줄이지 않는다.</summary>
+    public void DragExportEnd(double seconds, double minimumDuration)
+    {
+        if (!CanEditExportRange || !double.IsFinite(seconds)) { NotifyExportRange(); return; }
+        var duration = Math.Max(minimumDuration, Math.Round(seconds * OutputFps, MidpointRounding.AwayFromZero) / OutputFps);
+        if (duration != OutputDurationSeconds)
+        {
+            OutputDurationSeconds = duration;
+            Status = $"전체 길이를 {OutputDurationText}(으)로 맞췄습니다.";
+        }
+
+        SetExportBoundary(false, seconds);
+    }
+
     public void ResetExportRange()
     {
         if (!CanEditExportRange) { return; }

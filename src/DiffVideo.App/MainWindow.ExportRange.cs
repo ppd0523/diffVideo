@@ -11,6 +11,9 @@ public partial class MainWindow
     private Thumb? _exportRangeThumb;
     private ExportRange _exportRangeBefore;
     private double _exportRangePointerOffset;
+    private double _exportDurationBefore;
+    // 맞춤 보기에서는 길이가 늘면 축척이 바뀌므로, 드래그 중에는 시작 때 축척으로 시간을 잰다.
+    private double _exportRangePixelsPerSecond = 1;
 
     private void UpdateExportRangeMarkers()
     {
@@ -54,6 +57,8 @@ public partial class MainWindow
     {
         if (ViewModel is not { CanEditExportRange: true } vm || _overlayDragTrack is not null || _timelineDragActive || _playheadDragging || IsRoiDragging) { return false; }
         _exportRangeBefore = new(vm.ExportStartSeconds, vm.ExportEndSeconds);
+        _exportDurationBefore = vm.OutputDurationSeconds;
+        _exportRangePixelsPerSecond = TimelineView.PixelsPerSecond;
         _exportRangeThumb = thumb;
         PreviewLogicalCanvas.Focus();
         return true;
@@ -67,13 +72,17 @@ public partial class MainWindow
         {
             ScrollTimeline(TimelineView.Offset + (pointer < 0 ? pointer : pointer - TimelineView.Width), manual: true);
         }
-        UpdateExportRangeDrag(TimelineView.TimeAt(pointer - _exportRangePointerOffset));
+        var x = pointer - _exportRangePointerOffset;
+        UpdateExportRangeDrag(ReferenceEquals(_exportRangeThumb, ExportStartHandle)
+            ? TimelineView.TimeAt(x)
+            : Math.Max(0, (x + TimelineView.Offset) / _exportRangePixelsPerSecond)); // 끝은 전체 길이에서 자르지 않는다
     }
 
     internal void UpdateExportRangeDrag(double seconds)
     {
-        if (_exportRangeThumb is null) { return; }
-        ViewModel?.SetExportBoundary(ReferenceEquals(_exportRangeThumb, ExportStartHandle), seconds);
+        if (_exportRangeThumb is null || ViewModel is not { } vm) { return; }
+        if (ReferenceEquals(_exportRangeThumb, ExportStartHandle)) { vm.SetExportBoundary(true, seconds); }
+        else { vm.DragExportEnd(seconds, _exportDurationBefore); }
     }
 
     private void ExportRange_DragCompleted(object sender, DragCompletedEventArgs e)
@@ -86,6 +95,7 @@ public partial class MainWindow
     {
         if (_exportRangeThumb is not { } thumb) { return; }
         _exportRangeThumb = null;
+        if (ViewModel is { } vm) { vm.OutputDurationSeconds = _exportDurationBefore; }
         ViewModel?.ApplyExportRange(_exportRangeBefore);
         if (thumb.IsDragging) { thumb.CancelDrag(); }
     }
