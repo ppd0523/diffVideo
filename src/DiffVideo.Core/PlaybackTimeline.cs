@@ -13,7 +13,7 @@ public static class PlaybackTimeline
         Math.Clamp(SnapToFrame(seconds, framesPerSecond), 0, LastFrameSeconds(durationSeconds, framesPerSecond));
 
     public static double SnapPlayhead(double seconds, int framesPerSecond, double durationSeconds) =>
-        Math.Clamp(SnapToFrame(seconds, framesPerSecond), 0, LastFrameSeconds(durationSeconds, framesPerSecond));
+        SnapVideoStart(seconds, framesPerSecond, durationSeconds);
 
     public static double SnapAudioStart(double seconds, double durationSeconds)
     {
