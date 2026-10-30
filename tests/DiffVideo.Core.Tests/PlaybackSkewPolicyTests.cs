@@ -19,18 +19,11 @@ public sealed class PlaybackSkewPolicyTests
         Observed(Enumerable.Repeat(skew, count).ToArray());
 
     [Fact]
-    public void FreshPolicyUsesTheDefaults()
-    {
-        var policy = new PlaybackSkewPolicy();
-        Assert.Equal(0.1, policy.BadgeSeconds);
-        Assert.Equal(0.5, policy.ReseekSeconds);
-    }
-
-    [Fact]
     public void TooFewSamplesKeepTheDefault()
     {
         var policy = Repeated(0.6, PlaybackSkewPolicy.MinimumSamples - 1);
-        Assert.Equal(PlaybackSkewPolicy.DefaultBadgeSeconds, policy.BadgeSeconds);
+        Assert.Equal(0.1, policy.BadgeSeconds);
+        Assert.Equal(0.5, policy.ReseekSeconds);
     }
 
     [Fact]

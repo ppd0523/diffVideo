@@ -1,4 +1,5 @@
 using DiffVideo.Core;
+using DiffVideo.Infrastructure;
 
 namespace DiffVideo.Core.Tests;
 
@@ -58,6 +59,18 @@ internal static class TestComposition
     }
 
     public static MediaInfo VideoMedia(string path) => new(path, MediaKind.Video, "mov,mp4", "h264", TimeSpan.FromSeconds(10), 1920, 1080, 30, true, "aac", 48000, 2);
+
+    public static VideoTrack CroppedTrack(VideoFitMode fit = VideoFitMode.Fit) => Create().Videos[0] with
+    {
+        Roi = new(100, 50, 400, 200), Destination = new(10, 20, 200, 200), FitMode = fit
+    };
+
+    public static string FilterGraph(FfmpegInvocation invocation)
+    {
+        var index = invocation.Arguments.ToList().IndexOf("-filter_complex");
+        Assert.True(index >= 0);
+        return invocation.Arguments[index + 1];
+    }
 }
 
 public sealed class CompositionEqualityTests

@@ -8,7 +8,7 @@ public sealed class FfmpegCommandBuilderTests
     public void ExportGraph_ContainsFreezeOffsetsAudioMixAndLimiter()
     {
         var invocation = FfmpegCommandBuilder.BuildExport(TestComposition.Create(), "output.mp4.part", H264Encoder.AmdAmf);
-        var graph = FilterGraph(invocation);
+        var graph = TestComposition.FilterGraph(invocation);
 
         Assert.Contains("start_mode=clone:start_duration=3", graph);
         Assert.Contains("stop_mode=clone", graph);
@@ -27,7 +27,7 @@ public sealed class FfmpegCommandBuilderTests
             .WithVideo(0, composition.Videos[0] with { IncludeAudio = false })
             .WithVideo(1, composition.Videos[1] with { IncludeAudio = false });
 
-        var graph = FilterGraph(FfmpegCommandBuilder.BuildExport(composition, "output.mp4.part", H264Encoder.MediaFoundation));
+        var graph = TestComposition.FilterGraph(FfmpegCommandBuilder.BuildExport(composition, "output.mp4.part", H264Encoder.MediaFoundation));
         Assert.Contains("anullsrc=r=48000:cl=stereo", graph);
         Assert.DoesNotContain("amix=", graph);
     }
@@ -36,7 +36,7 @@ public sealed class FfmpegCommandBuilderTests
     public void StillPreview_TrimsAtRequestedPlayhead()
     {
         var invocation = FfmpegCommandBuilder.BuildStillPreview(TestComposition.Create(), 4.25);
-        Assert.Contains("trim=start=4.25:duration=0.1", FilterGraph(invocation));
+        Assert.Contains("trim=start=4.25:duration=0.1", TestComposition.FilterGraph(invocation));
         Assert.Equal("pipe:1", invocation.Arguments[^1]);
     }
 
@@ -44,20 +44,13 @@ public sealed class FfmpegCommandBuilderTests
     public void AudioPreview_UsesExportMixAndTrimsAtPlayhead()
     {
         var invocation = FfmpegCommandBuilder.BuildAudioPreview(TestComposition.Create(), 4.25);
-        var graph = FilterGraph(invocation);
+        var graph = TestComposition.FilterGraph(invocation);
 
         Assert.Contains("amix=inputs=3", graph);
         Assert.Contains("alimiter=limit=0.95", graph);
         Assert.Contains("atrim=start=4.25", graph);
         Assert.Contains("pcm_s16le", invocation.Arguments);
         Assert.Equal("pipe:1", invocation.Arguments[^1]);
-    }
-
-    private static string FilterGraph(FfmpegInvocation invocation)
-    {
-        var index = invocation.Arguments.ToList().IndexOf("-filter_complex");
-        Assert.True(index >= 0);
-        return invocation.Arguments[index + 1];
     }
 
     [Theory]
@@ -68,7 +61,7 @@ public sealed class FfmpegCommandBuilderTests
         var composition = TestComposition.Create(mp3);
         LabelOverlayAsset[] labels = [new(0, "한글 ' [파일] %.png", 12, 14), new(1, "two.png", 12, 12)];
         var invocation = FfmpegCommandBuilder.BuildExport(composition, "out.mp4", H264Encoder.MediaFoundation, labels);
-        var graph = FilterGraph(invocation);
+        var graph = TestComposition.FilterGraph(invocation);
         Assert.Contains(labels[0].Path, invocation.Arguments);
         Assert.DoesNotContain(labels[0].Path, graph);
         Assert.Contains($"[v0][{firstInput}:v]overlay=x=12:y=14", graph);

@@ -4,15 +4,12 @@ namespace DiffVideo.Core.Tests;
 
 public sealed class AudioMixTests
 {
-    private static MediaInfo Video(bool hasAudio = true) =>
-        new("v.mp4", MediaKind.Video, "mov,mp4", "h264", TimeSpan.FromSeconds(10), 1920, 1080, 30, hasAudio, "aac", 48000, 2);
-
     private static MediaInfo Music() =>
         new("m.mp3", MediaKind.Audio, "mp3", "mp3", TimeSpan.FromSeconds(10));
 
     private static VideoTrack Track(double volume, bool includeAudio = true, bool hasAudio = true)
     {
-        var media = Video(hasAudio);
+        var media = TestComposition.VideoMedia("v.mp4") with { HasAudio = hasAudio };
         return new(media, TimeSpan.Zero, PixelRect.FullFrame(media), new(0, 0, 960, 1080),
             VideoFitMode.Fit, true, 0, includeAudio, volume);
     }
@@ -63,9 +60,8 @@ public sealed class AudioMixTests
     [Fact]
     public void GraphAppliesTheSharesRatherThanTheRawVolumes()
     {
-        var graph = string.Join(' ', DiffVideo.Infrastructure.FfmpegCommandBuilder
-            .BuildExport(Compose([Track(1), Track(1)]), "out.mp4", DiffVideo.Infrastructure.H264Encoder.MediaFoundation)
-            .Arguments);
+        var graph = TestComposition.FilterGraph(DiffVideo.Infrastructure.FfmpegCommandBuilder
+            .BuildExport(Compose([Track(1), Track(1)]), "out.mp4", DiffVideo.Infrastructure.H264Encoder.MediaFoundation));
         Assert.Contains("volume=0.5", graph);
         Assert.DoesNotContain("volume=1,", graph);
     }

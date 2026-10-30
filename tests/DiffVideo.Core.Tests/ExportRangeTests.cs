@@ -63,7 +63,7 @@ public sealed class ExportRangeTests
         composition = composition with { Output = composition.Output with { ExportStart = TimeSpan.FromSeconds(2), ExportEnd = TimeSpan.FromSeconds(5) } };
         var invocation = FfmpegCommandBuilder.BuildExport(composition, "out.mp4", H264Encoder.MediaFoundation);
         var arguments = invocation.Arguments.ToList();
-        var graph = arguments[arguments.IndexOf("-filter_complex") + 1];
+        var graph = TestComposition.FilterGraph(invocation);
         Assert.Contains("[vout]trim=start_frame=60:end_frame=150,setpts=PTS-STARTPTS[exportvideo]", graph);
         Assert.Contains("[aout]atrim=start=2:end=5,asetpts=PTS-STARTPTS[exportaudio]", graph);
         Assert.Contains("adelay=3000:all=1", graph);

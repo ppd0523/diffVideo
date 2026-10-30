@@ -35,13 +35,7 @@ public sealed class PreviewPlaybackTests
     [Fact]
     public void FitLayout_ClipsToRoiAndLeavesLetterbox()
     {
-        var track = TestComposition.Create().Videos[0] with
-        {
-            Roi = new(100, 50, 400, 200),
-            Destination = new(10, 20, 200, 200),
-            FitMode = VideoFitMode.Fit
-        };
-        var layout = PreviewLayout.From(track);
+        var layout = PreviewLayout.From(TestComposition.CroppedTrack(VideoFitMode.Fit));
         Assert.Equal(0.5, layout.ScaleX);
         Assert.Equal(new PreviewRect(10, 70, 200, 100), layout.Clip);
         Assert.Equal(-40, layout.TranslateX);
@@ -51,13 +45,7 @@ public sealed class PreviewPlaybackTests
     [Fact]
     public void FillLayout_ClipsToDestination()
     {
-        var track = TestComposition.Create().Videos[0] with
-        {
-            Roi = new(100, 50, 400, 200),
-            Destination = new(10, 20, 200, 200),
-            FitMode = VideoFitMode.Fill
-        };
-        var layout = PreviewLayout.From(track);
+        var layout = PreviewLayout.From(TestComposition.CroppedTrack(VideoFitMode.Fill));
         Assert.Equal(1, layout.ScaleX);
         Assert.Equal(new PreviewRect(10, 20, 200, 200), layout.Clip);
         Assert.Equal(-190, layout.TranslateX);
