@@ -1,0 +1,27 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- DESIGN.md 색 토큰(라이트). Colors.Dark.xaml과 키가 같아야 하고, 대비는 ThemePaletteTests가 WCAG AA로 검사한다. -->
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#716A65" />
+    <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#57534E" />
+    <SolidColorBrush x:Key="PrimaryActiveBrush" Color="#44403C" />
+    <SolidColorBrush x:Key="InkBrush" Color="#1C1917" />
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#57534E" />
+    <SolidColorBrush x:Key="TertiaryTextBrush" Color="#A8A29E" />
+    <SolidColorBrush x:Key="CanvasBrush" Color="#FAFAF9" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#F5F5F4" />
+    <SolidColorBrush x:Key="RaisedSurfaceBrush" Color="#EFEDEB" />
+    <SolidColorBrush x:Key="HairlineBrush" Color="#E7E5E4" />
+    <SolidColorBrush x:Key="MediumBorderBrush" Color="#8A847F" />
+    <SolidColorBrush x:Key="StrongBorderBrush" Color="#78716C" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#A16207" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="#DC2626" />
+    <SolidColorBrush x:Key="ExportBrush" Color="#2563EB" />
+    <SolidColorBrush x:Key="ExportHoverBrush" Color="#1D4ED8" />
+    <SolidColorBrush x:Key="ExportActiveBrush" Color="#1E40AF" />
+    <SolidColorBrush x:Key="SegmentBarBrush" Color="#18A16207" />
+    <SolidColorBrush x:Key="SegmentBandBrush" Color="#30A16207" />
+    <SolidColorBrush x:Key="ExportShadeBrush" Color="#201C1917" />
+    <SolidColorBrush x:Key="RoiFillBrush" Color="#26716A65" />
+    <SolidColorBrush x:Key="RoiDragFillBrush" Color="#40716A65" />
+    <SolidColorBrush x:Key="DropHintBrush" Color="#E6FAFAF9" />
+</ResourceDictionary>

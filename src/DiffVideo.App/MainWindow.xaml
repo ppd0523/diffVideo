@@ -22,8 +22,8 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <Border Background="{StaticResource WarningBrush}" CornerRadius="0">
-                            <TextBlock Text="{TemplateBinding Tag}" Foreground="{StaticResource CanvasBrush}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Background="{DynamicResource WarningBrush}" CornerRadius="0">
+                            <TextBlock Text="{TemplateBinding Tag}" Foreground="{DynamicResource CanvasBrush}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
@@ -33,9 +33,9 @@
             <Setter Property="Height" Value="30" />
             <Setter Property="MinHeight" Value="30" />
             <Setter Property="Padding" Value="3.6,2.4" />
-            <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
-            <Setter Property="Background" Value="{StaticResource CanvasBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource MediumBorderBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+            <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource MediumBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Template">
@@ -46,14 +46,14 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
                                 <Setter TargetName="Surface" Property="BorderThickness" Value="2" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Surface" Property="Background" Value="{StaticResource SurfaceBrush}" />
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource SurfaceBrush}" />
                                 <Setter TargetName="Surface" Property="Opacity" Value="0.5" />
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -64,31 +64,31 @@
         <Style x:Key="PlacementHandle" TargetType="Border">
             <Setter Property="Width" Value="16" />
             <Setter Property="Height" Value="16" />
-            <Setter Property="Background" Value="#FAFAF9" />
-            <Setter Property="BorderBrush" Value="#78716C" />
+            <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
             <Setter Property="BorderThickness" Value="2" />
             <Setter Property="IsHitTestVisible" Value="False" />
             <Setter Property="Visibility" Value="{Binding IsSelected, Converter={StaticResource BoolToVisibility}}" />
         </Style>
 
         <Style x:Key="TrackOverlay" TargetType="Border">
-            <Setter Property="BorderBrush" Value="{StaticResource CanvasBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource OnScrimBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Cursor" Value="SizeAll" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="BorderBrush" Value="{StaticResource LilacBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
                     <Setter Property="BorderThickness" Value="2" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="TimelineClip" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="0" />
-            <Setter Property="TextElement.Foreground" Value="{StaticResource InkBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource InkBrush}" />
             <Setter Property="Cursor" Value="SizeWE" />
             <Setter Property="Height" Value="30" />
             <Setter Property="Margin" Value="0,2,0,0" />
@@ -97,9 +97,9 @@
         <Style x:Key="VideoTimelineClip" TargetType="Border" BasedOn="{StaticResource TimelineClip}">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
-                    <Setter Property="TextElement.Foreground" Value="{StaticResource CanvasBrush}" />
-                    <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                    <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource CanvasBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -117,7 +117,7 @@
                 <ColumnDefinition Width="8" />
                 <ColumnDefinition x:Name="InspectorColumn" Width="216" MinWidth="216" />
             </Grid.ColumnDefinitions>
-            <Border x:Name="PreviewDropHost" Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="0"
+            <Border x:Name="PreviewDropHost" Grid.Column="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1" CornerRadius="0"
                         AllowDrop="True" Drop="Media_Drop" DragOver="Media_DragOver" DragLeave="Preview_DragLeave" SizeChanged="PreviewDropHost_SizeChanged"
                         ToolTip="정지·일시정지: 왼쪽 드래그로 이동 · 변/모서리로 크기 조절 · 오른쪽 드래그로 ROI 지정 · Esc 취소 · Space 재생/일시정지">
                 <Grid>
@@ -154,17 +154,17 @@
                                                 <Border Style="{StaticResource PlacementHandle}" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
                                                 <Border Style="{StaticResource PlacementHandle}" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
                                                 <Border Style="{StaticResource PlacementHandle}" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
-                                                <Border Background="#E61C1917" CornerRadius="0" Padding="12,8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12">
+                                                <Border Background="{DynamicResource ScrimStrongBrush}" CornerRadius="0" Padding="12,8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Foreground="{StaticResource CanvasBrush}" Width="28" Height="28" />
-                                                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource CanvasBrush}" FontSize="22" FontWeight="SemiBold" Margin="8,0,0,0" />
+                                                        <ContentControl Content="{StaticResource Icon.Movie}" Style="{StaticResource MaterialIcon}" Foreground="{DynamicResource OnScrimBrush}" Width="28" Height="28" />
+                                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource OnScrimBrush}" FontSize="22" FontWeight="SemiBold" Margin="8,0,0,0" />
                                                     </StackPanel>
                                                 </Border>
-                                                <Border Background="#CC1C1917" CornerRadius="0" Padding="16,12" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
+                                                <Border Background="{DynamicResource ScrimBrush}" CornerRadius="0" Padding="16,12" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
                                                             Visibility="{Binding IsLagging, Converter={StaticResource BoolToVisibility}}">
                                                     <StackPanel>
                                                         <ProgressBar IsIndeterminate="True" Width="96" Height="4" />
-                                                        <TextBlock Text="버퍼링" Foreground="{StaticResource CanvasBrush}" FontSize="12" HorizontalAlignment="Center" Margin="0,8,0,0" />
+                                                        <TextBlock Text="버퍼링" Foreground="{DynamicResource OnScrimBrush}" FontSize="12" HorizontalAlignment="Center" Margin="0,8,0,0" />
                                                     </StackPanel>
                                                 </Border>
                                             </Grid>
@@ -173,12 +173,12 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <Canvas IsHitTestVisible="False" ClipToBounds="True">
-                                <Rectangle x:Name="PreviewRoiSelection" Visibility="Collapsed" Stroke="{StaticResource CanvasBrush}" Fill="#4078716C" StrokeDashArray="4,2" />
+                                <Rectangle x:Name="PreviewRoiSelection" Visibility="Collapsed" Stroke="{DynamicResource OnScrimBrush}" Fill="{DynamicResource RoiDragFillBrush}" StrokeDashArray="4,2" />
                             </Canvas>
                         </Grid>
                     </Viewbox>
                     <controls:CoordinateTip x:Name="PreviewCoordinateTip" Panel.ZIndex="120"/>
-                    <Border Background="{StaticResource SurfaceBrush}">
+                    <Border Background="{DynamicResource SurfaceBrush}">
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -196,7 +196,7 @@
                                     AutomationProperties.HelpText="영상 프리뷰 구역입니다. MP4 영상 또는 MP3/WAV 음원을 끌어 놓을 수 있습니다.">
                             <Button.Style>
                                 <Style TargetType="Button">
-                                    <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
                                     <Setter Property="Background" Value="Transparent" />
                                     <Setter Property="Cursor" Value="Hand" />
                                     <Setter Property="Template">
@@ -216,10 +216,10 @@
                                     </Setter>
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
                                         </Trigger>
                                         <Trigger Property="IsKeyboardFocused" Value="True">
-                                            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
                                         </Trigger>
                                         <Trigger Property="IsEnabled" Value="False">
                                             <Setter Property="Opacity" Value="0.45" />
@@ -229,15 +229,15 @@
                             </Button.Style>
                         </Button>
                     </Border>
-                    <Border x:Name="PreviewLoadingOverlay" Background="#CC1C1917" CornerRadius="0" IsHitTestVisible="False" Visibility="{Binding IsPreviewLoading, Converter={StaticResource BoolToVisibility}}" Panel.ZIndex="100">
-                        <Border Background="{StaticResource CanvasBrush}" CornerRadius="0" Padding="24,12" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border x:Name="PreviewLoadingOverlay" Background="{DynamicResource ScrimBrush}" CornerRadius="0" IsHitTestVisible="False" Visibility="{Binding IsPreviewLoading, Converter={StaticResource BoolToVisibility}}" Panel.ZIndex="100">
+                        <Border Background="{DynamicResource CanvasBrush}" CornerRadius="0" Padding="24,12" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <StackPanel Width="176">
                                 <TextBlock Text="재생 동기화 중…" TextAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,12" />
                                 <ProgressBar IsIndeterminate="True" Height="4" />
                             </StackPanel>
                         </Border>
                     </Border>
-                    <Border x:Name="PreviewDropHint" Visibility="Collapsed" IsHitTestVisible="False" Background="#E6FAFAF9" BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="3" CornerRadius="0" Panel.ZIndex="110">
+                    <Border x:Name="PreviewDropHint" Visibility="Collapsed" IsHitTestVisible="False" Background="{DynamicResource DropHintBrush}" BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="3" CornerRadius="0" Panel.ZIndex="110">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <ContentControl Content="{StaticResource Icon.FolderOpen}" Style="{StaticResource MaterialIcon}" Width="40" Height="40" HorizontalAlignment="Center" Margin="0,0,0,12" />
                             <TextBlock Text="놓아서 MP4 / MP3 / WAV 추가" FontSize="20" FontWeight="SemiBold" />
@@ -246,9 +246,9 @@
                 </Grid>
             </Border>
             <Thumb x:Name="InspectorWidthSplitter" Grid.Column="1" Width="8" Cursor="SizeWE" DragDelta="InspectorWidth_DragDelta" ToolTip="프리뷰와 설정 탭 너비 조절" AutomationProperties.Name="프리뷰와 설정 탭 너비 조절">
-                <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent"><Border Width="2" Height="64" Background="{StaticResource HairlineBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Thumb.Template>
+                <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent"><Border Width="2" Height="64" Background="{DynamicResource HairlineBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Thumb.Template>
             </Thumb>
-            <Border x:Name="InspectorPanel" Grid.Column="2" Background="{StaticResource CanvasBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="0" Padding="12">
+            <Border x:Name="InspectorPanel" Grid.Column="2" Background="{DynamicResource CanvasBrush}" BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1" CornerRadius="0" Padding="12">
                 <Grid>
                     <TabControl x:Name="SettingsTabs" SelectedIndex="1">
                         <TabItem x:Name="CanvasSettingsTab" Header="캔버스">
@@ -264,7 +264,7 @@
                                         <Button Content="1080p" Click="Canvas1080_Click" Style="{StaticResource CompactButton}" Margin="2,0" />
                                         <Button Content="4K" Click="Canvas4K_Click" Style="{StaticResource CompactButton}" Margin="4,0,0,0" />
                                     </UniformGrid>
-                                    <Border Height="1" Background="{StaticResource SoftHairlineBrush}" Margin="0,24,0,0" />
+                                    <Border Height="1" Background="{DynamicResource HairlineBrush}" Margin="0,24,0,0" />
                                     <TextBlock Text="프레임 레이트" Style="{StaticResource FieldLabel}" />
                                     <DockPanel>
                                         <TextBlock DockPanel.Dock="Right" Text="fps" VerticalAlignment="Center" Margin="8,0,0,0" />
@@ -346,9 +346,9 @@
                                                                     <Condition Binding="{Binding AspectRatioLocked}" Value="False" />
                                                                     <Condition Binding="{Binding FitMode}" Value="Fit" />
                                                                 </MultiDataTrigger.Conditions>
-                                                                <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
-                                                                <Setter Property="Foreground" Value="{StaticResource CanvasBrush}" />
-                                                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                                                <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource CanvasBrush}" />
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
                                                             </MultiDataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -363,9 +363,9 @@
                                                                     <Condition Binding="{Binding AspectRatioLocked}" Value="False" />
                                                                     <Condition Binding="{Binding FitMode}" Value="Fill" />
                                                                 </MultiDataTrigger.Conditions>
-                                                                <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
-                                                                <Setter Property="Foreground" Value="{StaticResource CanvasBrush}" />
-                                                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                                                <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource CanvasBrush}" />
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
                                                             </MultiDataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -380,16 +380,16 @@
                                                                     <Condition Binding="{Binding AspectRatioLocked}" Value="False" />
                                                                     <Condition Binding="{Binding FitMode}" Value="Stretch" />
                                                                 </MultiDataTrigger.Conditions>
-                                                                <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
-                                                                <Setter Property="Foreground" Value="{StaticResource CanvasBrush}" />
-                                                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                                                <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource CanvasBrush}" />
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
                                                             </MultiDataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
                                             </Button>
                                         </StackPanel>
-                                        <Border Height="1" Background="{StaticResource SoftHairlineBrush}" Margin="0,11,0,0" />
+                                        <Border Height="1" Background="{DynamicResource HairlineBrush}" Margin="0,11,0,0" />
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="자르기" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,12,8,8" />
                                             <Button x:Name="EditRoiButton" Content="{StaticResource Icon.Crop}" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="(E) 별도 창에서 ROI 편집 · 프리뷰에서는 오른쪽 버튼 드래그" Click="EditRoi_Click" IsEnabled="{Binding HasMedia}" Margin="0,4,4,0" />
@@ -405,7 +405,7 @@
                                             <TextBox Padding="3.6,2.4" MinHeight="30" x:Name="RoiWidthInput" Text="{Binding RoiWidth, UpdateSourceTrigger=LostFocus}" Margin="0,0,4,0" AutomationProperties.Name="ROI 너비" />
                                             <TextBox Padding="3.6,2.4" MinHeight="30" x:Name="RoiHeightInput" Text="{Binding RoiHeight, UpdateSourceTrigger=LostFocus}" Margin="4,0,0,0" AutomationProperties.Name="ROI 높이" />
                                         </UniformGrid>
-                                        <Border Height="1" Background="{StaticResource SoftHairlineBrush}" Margin="0,20,0,0" />
+                                        <Border Height="1" Background="{DynamicResource HairlineBrush}" Margin="0,20,0,0" />
                                         <Grid Margin="0,12,0,0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
@@ -428,12 +428,12 @@
             <Thumb.Template>
                 <ControlTemplate TargetType="Thumb">
                     <Border Background="Transparent">
-                        <Border Width="64" Height="2" Background="{StaticResource HairlineBrush}" VerticalAlignment="Center"/>
+                        <Border Width="64" Height="2" Background="{DynamicResource HairlineBrush}" VerticalAlignment="Center"/>
                     </Border>
                 </ControlTemplate>
             </Thumb.Template>
         </Thumb>
-        <Border x:Name="TimelineDropHost" Grid.Row="2" Background="{StaticResource CanvasBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" CornerRadius="0" Padding="8"
+        <Border x:Name="TimelineDropHost" Grid.Row="2" Background="{DynamicResource CanvasBrush}" BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1" CornerRadius="0" Padding="8"
         AllowDrop="True" PreviewDrop="Media_Drop" PreviewDragOver="Media_DragOver">
             <Grid x:Name="IntegratedTimeline" ClipToBounds="True" SizeChanged="Timeline_SizeChanged">
                 <Grid.RowDefinitions>
@@ -441,7 +441,7 @@
                     <RowDefinition Height="40"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <Grid x:Name="FullTransportBar" Grid.Row="0" IsEnabled="{Binding CanUseFullControls}" Background="{StaticResource SurfaceBrush}">
+                <Grid x:Name="FullTransportBar" Grid.Row="0" IsEnabled="{Binding CanUseFullControls}" Background="{DynamicResource SurfaceBrush}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
@@ -473,7 +473,7 @@
                         <Button x:Name="FitTimelineButton" Content="{StaticResource Icon.AspectRatio}" Style="{StaticResource MaterialIconButton}" Width="30" Height="30" MinHeight="30" ToolTip="타임라인 전체 보기" Click="FitTimeline_Click"/>
                     </StackPanel>
                 </Grid>
-                <Grid x:Name="TransportBar" Grid.Row="1" Background="#18CA8A04">
+                <Grid x:Name="TransportBar" Grid.Row="1" Background="{DynamicResource SegmentBarBrush}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
@@ -524,16 +524,16 @@
                                     <Setter Property="Width" Value="84"/>
                                     <Setter Property="Height" Value="30"/>
                                     <Setter Property="MinHeight" Value="30"/>
-                                    <Setter Property="Background" Value="#2563EB"/>
-                                    <Setter Property="BorderBrush" Value="#2563EB"/>
+                                    <Setter Property="Background" Value="{DynamicResource ExportBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource ExportBrush}"/>
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#1D4ED8"/>
-                                            <Setter Property="BorderBrush" Value="#1D4ED8"/>
+                                            <Setter Property="Background" Value="{DynamicResource ExportHoverBrush}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource ExportHoverBrush}"/>
                                         </Trigger>
                                         <Trigger Property="IsPressed" Value="True">
-                                            <Setter Property="Background" Value="#1E40AF"/>
-                                            <Setter Property="BorderBrush" Value="#1E40AF"/>
+                                            <Setter Property="Background" Value="{DynamicResource ExportActiveBrush}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource ExportActiveBrush}"/>
                                         </Trigger>
                                         <DataTrigger Binding="{Binding IsExporting}" Value="True">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -615,7 +615,7 @@
                         <Thumb.Template>
                             <ControlTemplate TargetType="Thumb">
                                 <Border Background="Transparent">
-                                    <Border Width="1" Background="{StaticResource HairlineBrush}" HorizontalAlignment="Center"/>
+                                    <Border Width="1" Background="{DynamicResource HairlineBrush}" HorizontalAlignment="Center"/>
                                 </Border>
                             </ControlTemplate>
                         </Thumb.Template>
@@ -638,7 +638,7 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.Resources>
                                     <DataTemplate DataType="{x:Type vm:VideoTrackViewModel}">
-                                        <Canvas Background="{StaticResource CanvasBrush}" ClipToBounds="True">
+                                        <Canvas Background="{DynamicResource CanvasBrush}" ClipToBounds="True">
                                             <Border Style="{StaticResource VideoTimelineClip}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}, Converter={StaticResource ClipHeight}}"
                                         MouseLeftButtonDown="TimelineClip_MouseLeftButtonDown" MouseMove="TimelineClip_MouseMove" MouseLeftButtonUp="TimelineClip_MouseLeftButtonUp" LostMouseCapture="TimelineClip_LostMouseCapture">
                                                 <Border.Width>
@@ -668,7 +668,7 @@
                                         </Canvas>
                                     </DataTemplate>
                                     <DataTemplate DataType="{x:Type vm:AudioTrackViewModel}">
-                                        <Canvas x:Name="TimelineAudio" Background="{StaticResource CanvasBrush}" ClipToBounds="True">
+                                        <Canvas x:Name="TimelineAudio" Background="{DynamicResource CanvasBrush}" ClipToBounds="True">
                                             <Border Style="{StaticResource TimelineClip}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}, Converter={StaticResource ClipHeight}}"
                                         MouseLeftButtonDown="TimelineClip_MouseLeftButtonDown" MouseMove="TimelineClip_MouseMove" MouseLeftButtonUp="TimelineClip_MouseLeftButtonUp" LostMouseCapture="TimelineClip_LostMouseCapture">
                                                 <Border.Width>
@@ -686,7 +686,7 @@
                                                     </MultiBinding>
                                                 </Canvas.Left>
                                                 <Grid>
-                                                <Rectangle Fill="{StaticResource TertiaryTextBrush}" OpacityMask="{Binding WaveformMask, TargetNullValue={x:Static Brushes.Transparent}}" Margin="0,2" IsHitTestVisible="False" />
+                                                <Rectangle Fill="{DynamicResource TertiaryTextBrush}" OpacityMask="{Binding WaveformMask, TargetNullValue={x:Static Brushes.Transparent}}" Margin="0,2" IsHitTestVisible="False" />
                                                 <Grid Margin="12,0" VerticalAlignment="Center">
                                                     <TextBlock Tag="StartLabel" Text="{Binding StartSeconds, StringFormat=시작 {0:F3}초}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"
                                                    Visibility="{Binding IsEditingStart, Converter={StaticResource InverseBoolToVisibility}}" />
@@ -707,7 +707,7 @@
                                 <Slider.Template>
                                     <ControlTemplate TargetType="Slider">
                                         <Grid Background="Transparent">
-                                            <Border Height="2" VerticalAlignment="Center" Background="{StaticResource HairlineBrush}"/>
+                                            <Border Height="2" VerticalAlignment="Center" Background="{DynamicResource HairlineBrush}"/>
                                             <Track x:Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}">
                                                 <Track.Thumb>
                                                     <Thumb Width="0" Height="28">
@@ -737,19 +737,19 @@
                         </Grid>
                         <controls:AxisRuler x:Name="TimelineRuler" Height="22" VerticalAlignment="Top" IsHitTestVisible="False"/>
                         <Canvas x:Name="ExportRangeShadeOverlay" ClipToBounds="True" IsHitTestVisible="False">
-                            <Border x:Name="ExportBeforeShade" Background="#201C1917"/>
-                            <Border x:Name="ExportAfterShade" Background="#201C1917"/>
-                            <Border x:Name="ExportRangeBand" Height="22" Background="#30CA8A04"/>
-                            <Border x:Name="ExportStartLine" Width="2" Background="{StaticResource WarningBrush}"/>
-                            <Border x:Name="ExportEndLine" Width="2" Background="{StaticResource WarningBrush}"/>
+                            <Border x:Name="ExportBeforeShade" Background="{DynamicResource ExportShadeBrush}"/>
+                            <Border x:Name="ExportAfterShade" Background="{DynamicResource ExportShadeBrush}"/>
+                            <Border x:Name="ExportRangeBand" Height="22" Background="{DynamicResource SegmentBandBrush}"/>
+                            <Border x:Name="ExportStartLine" Width="2" Background="{DynamicResource WarningBrush}"/>
+                            <Border x:Name="ExportEndLine" Width="2" Background="{DynamicResource WarningBrush}"/>
                         </Canvas>
                         <Canvas x:Name="PlayheadOverlay" ClipToBounds="True">
                             <Thumb x:Name="FullPlayheadBar" Tag="Full" Width="12" Cursor="SizeWE" IsEnabled="{Binding CanNavigate}" ToolTip="전체 재생 헤드 · 드래그하여 이동" DragStarted="PlayheadBar_DragStarted" DragDelta="PlayheadBar_DragDelta" DragCompleted="PlayheadBar_DragCompleted">
                                 <Thumb.Template>
                                     <ControlTemplate TargetType="Thumb">
                                         <Grid Background="Transparent">
-                                            <Border Width="2" Background="{StaticResource PrimaryBrush}" HorizontalAlignment="Center"/>
-                                            <Border Width="6" Height="16" Background="{StaticResource PrimaryBrush}" VerticalAlignment="Top" Margin="0,8,0,0"/>
+                                            <Border Width="2" Background="{DynamicResource PrimaryBrush}" HorizontalAlignment="Center"/>
+                                            <Border Width="6" Height="16" Background="{DynamicResource PrimaryBrush}" VerticalAlignment="Top" Margin="0,8,0,0"/>
                                         </Grid>
                                     </ControlTemplate>
                                 </Thumb.Template>
@@ -758,8 +758,8 @@
                                 <Thumb.Template>
                                     <ControlTemplate TargetType="Thumb">
                                         <Grid Background="Transparent">
-                                            <Border Width="2" Background="{StaticResource WarningBrush}" HorizontalAlignment="Center"/>
-                                            <Border Width="6" Height="16" Background="{StaticResource WarningBrush}" VerticalAlignment="Bottom" Margin="0,0,0,8"/>
+                                            <Border Width="2" Background="{DynamicResource WarningBrush}" HorizontalAlignment="Center"/>
+                                            <Border Width="6" Height="16" Background="{DynamicResource WarningBrush}" VerticalAlignment="Bottom" Margin="0,0,0,8"/>
                                         </Grid>
                                     </ControlTemplate>
                                 </Thumb.Template>
@@ -774,7 +774,7 @@
                 </Grid>
             </Grid>
         </Border>
-        <Border Grid.Row="3" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="12,5">
+        <Border Grid.Row="3" BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="12,5">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -786,7 +786,7 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="{Binding Status}" FontSize="11" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" Foreground="{StaticResource ErrorBrush}" FontWeight="SemiBold" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding ErrorMessage}" Margin="16,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" Foreground="{DynamicResource ErrorBrush}" FontWeight="SemiBold" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding ErrorMessage}" Margin="16,0,0,0" VerticalAlignment="Center" />
                 </Grid>
                 <ProgressBar Grid.Column="1" Height="4" Minimum="0" Maximum="100" Value="{Binding ExportProgress, Mode=OneWay}" Visibility="{Binding IsExporting, Converter={StaticResource BoolToVisibility}}" />
             </Grid>

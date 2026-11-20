@@ -35,8 +35,9 @@ public partial class RoiEditorWindow : Window
         SourceImage.Source = DecodePng(png);
         for (var i = 0; i < _handles.Length; i++)
         {
-            _handles[i] = new Rectangle { Width = 8, Height = 8,
-                Fill = (Brush)FindResource("CanvasBrush"), Stroke = (Brush)FindResource("PrimaryBrush"), StrokeThickness = 1 };
+            _handles[i] = new Rectangle { Width = 8, Height = 8, StrokeThickness = 1 };
+            _handles[i].SetResourceReference(Shape.FillProperty, "CanvasBrush");
+            _handles[i].SetResourceReference(Shape.StrokeProperty, "PrimaryBrush");
             HandleCanvas.Children.Add(_handles[i]);
         }
         UpdateGridState();
@@ -308,8 +309,8 @@ public partial class RoiEditorWindow : Window
         PixelGrid.Visibility = _sessionGridVisible ? Visibility.Visible : Visibility.Collapsed;
         GridToggleButton.Content = FindResource(_sessionGridVisible ? "Icon.GridOn" : "Icon.GridOff");
         GridToggleButton.ToolTip = _sessionGridVisible ? "그리드 숨기기 (100px)" : "그리드 표시 (100px)";
-        GridToggleButton.Background = (Brush)FindResource(_sessionGridVisible ? "InkBrush" : "SurfaceBrush");
-        GridToggleButton.Foreground = (Brush)FindResource(_sessionGridVisible ? "CanvasBrush" : "InkBrush");
+        GridToggleButton.SetResourceReference(BackgroundProperty, _sessionGridVisible ? "InkBrush" : "SurfaceBrush");
+        GridToggleButton.SetResourceReference(ForegroundProperty, _sessionGridVisible ? "CanvasBrush" : "InkBrush");
     }
     private static BitmapImage DecodePng(byte[] bytes)
     {

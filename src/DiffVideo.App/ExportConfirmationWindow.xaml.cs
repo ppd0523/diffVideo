@@ -57,12 +57,9 @@ public partial class ExportConfirmationWindow : Window
             SummaryText.Inlines.Add(new LineBreak());
         }
 
-        SummaryText.Inlines.Add(new Run(title)
-        {
-            FontSize = 11,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = (Brush)FindResource("PrimaryBrush")
-        });
+        var heading = new Run(title) { FontSize = 11, FontWeight = FontWeights.SemiBold };
+        heading.SetResourceReference(TextElement.ForegroundProperty, "PrimaryBrush");
+        SummaryText.Inlines.Add(heading);
         SummaryText.Inlines.Add(new LineBreak());
         SummaryText.Inlines.Add(new Run(content));
     }

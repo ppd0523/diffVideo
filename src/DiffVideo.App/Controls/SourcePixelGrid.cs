@@ -20,7 +20,8 @@ public sealed class SourcePixelGrid : FrameworkElement
     {
         if (PixelScale <= 0 || ImageBounds.IsEmpty) { return; }
         dc.PushClip(new RectangleGeometry(ImageBounds));
-        var pen = new Pen(new SolidColorBrush(Color.FromArgb(120, 168, 162, 158)), 1);
+        var pen = new Pen((Brush)FindResource("TertiaryTextBrush"), 1);
+        dc.PushOpacity(120 / 255.0);
         for (var x = Spacing; x < _width; x += Spacing)
         {
             var position = ImageBounds.Left + x * PixelScale;
@@ -31,6 +32,7 @@ public sealed class SourcePixelGrid : FrameworkElement
             var position = ImageBounds.Top + y * PixelScale;
             dc.DrawLine(pen, new Point(ImageBounds.Left, position), new Point(ImageBounds.Right, position));
         }
+        dc.Pop();
         dc.Pop();
     }
 }

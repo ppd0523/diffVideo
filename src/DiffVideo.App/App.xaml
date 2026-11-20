@@ -6,6 +6,8 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Themes/MaterialIcons.xaml" />
+                <!-- App.ApplyTheme이 Windows 앱 테마에 맞춰 Colors.Dark.xaml로 바꾼다 -->
+                <ResourceDictionary Source="Themes/Colors.Light.xaml" />
                 <ResourceDictionary Source="Themes/DesignSystem.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

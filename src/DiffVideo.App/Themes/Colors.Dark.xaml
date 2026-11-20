@@ -1,0 +1,27 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- DESIGN.md 색 토큰(다크). stone 계열을 뒤집었다: Canvas는 진한 배경, Primary는 밝은 돌색이라 그 위 글자는 Canvas색이다. -->
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#A8A29E" />
+    <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#D6D3D1" />
+    <SolidColorBrush x:Key="PrimaryActiveBrush" Color="#E7E5E4" />
+    <SolidColorBrush x:Key="InkBrush" Color="#F5F5F4" />
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#A8A29E" />
+    <SolidColorBrush x:Key="TertiaryTextBrush" Color="#78716C" />
+    <SolidColorBrush x:Key="CanvasBrush" Color="#1C1917" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#292524" />
+    <SolidColorBrush x:Key="RaisedSurfaceBrush" Color="#38332F" />
+    <SolidColorBrush x:Key="HairlineBrush" Color="#44403C" />
+    <SolidColorBrush x:Key="MediumBorderBrush" Color="#8A847F" />
+    <SolidColorBrush x:Key="StrongBorderBrush" Color="#A8A29E" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#CA8A04" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="#F87171" />
+    <SolidColorBrush x:Key="ExportBrush" Color="#60A5FA" />
+    <SolidColorBrush x:Key="ExportHoverBrush" Color="#93C5FD" />
+    <SolidColorBrush x:Key="ExportActiveBrush" Color="#BFDBFE" />
+    <SolidColorBrush x:Key="SegmentBarBrush" Color="#20CA8A04" />
+    <SolidColorBrush x:Key="SegmentBandBrush" Color="#40CA8A04" />
+    <SolidColorBrush x:Key="ExportShadeBrush" Color="#66000000" />
+    <SolidColorBrush x:Key="RoiFillBrush" Color="#26A8A29E" />
+    <SolidColorBrush x:Key="RoiDragFillBrush" Color="#40A8A29E" />
+    <SolidColorBrush x:Key="DropHintBrush" Color="#E61C1917" />
+</ResourceDictionary>
