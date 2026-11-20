@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using DiffVideo.App.Services;
 using Microsoft.Win32;
 
 namespace DiffVideo.App;
@@ -105,11 +106,20 @@ public partial class App : Application
         }
     }
 
-    /// <summary>Windows 설정의 앱 모드를 따른다. DIFFVIDEO_THEME=dark|light는 화면 검사용으로 그 설정을 덮어쓴다.</summary>
-    private static bool IsDarkTheme()
+    internal ThemePreference ThemePreference { get; private set; }
+
+    internal void SetThemePreference(ThemePreference preference)
+    {
+        ThemePreference = Enum.IsDefined(preference) ? preference : ThemePreference.System;
+        ApplyTheme();
+    }
+
+    /// <summary>앱 설정(밝게/어둡게)이 있으면 그것을, 아니면 Windows 설정의 앱 모드를 따른다. DIFFVIDEO_THEME=dark|light는 화면 검사용으로 둘 다 덮어쓴다.</summary>
+    private bool IsDarkTheme()
     {
         var forced = Environment.GetEnvironmentVariable("DIFFVIDEO_THEME");
         if (forced is "dark" or "light") { return forced == "dark"; }
+        if (ThemePreference != ThemePreference.System) { return ThemePreference == ThemePreference.Dark; }
         using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
         return key?.GetValue("AppsUseLightTheme") is int value && value == 0;
     }

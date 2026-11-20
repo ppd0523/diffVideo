@@ -17,6 +17,16 @@ internal static partial class PreviewDiagnostics
         Assert(Math.Abs(window.InspectorColumn.ActualWidth - 300) < 1, "Inspector width restored");
         Assert(vm.CanvasWidth == 1280 && vm.CanvasHeight == 720 && vm.OutputFps == 25 && vm.OutputDurationSeconds == 19 && vm.Quality == OutputQuality.High, "Output settings restored");
         Assert(Math.Abs(window.TimelineRow.ActualHeight - 300) < 1 && Math.Abs(window.TimelineView.ZoomRatio - 4) < 0.001, "Timeline height and zoom restored");
+        var app = (App)Application.Current;
+        Assert(app.ThemePreference == ThemePreference.Dark && ReferenceEquals(window.ThemeToggleIcon.Content, app.FindResource("Icon.DarkMode")) &&
+            ((System.Windows.Media.SolidColorBrush)app.FindResource("CanvasBrush")).Color == System.Windows.Media.Color.FromRgb(0x1C, 0x19, 0x17),
+            "Theme preference restored and applied");
+        window.CycleThemePreference();
+        Assert(app.ThemePreference == ThemePreference.System && store.Load().Theme == ThemePreference.System, "Theme toggle cycles back to system and saves");
+        window.CycleThemePreference();
+        Assert(app.ThemePreference == ThemePreference.Light &&
+            ((System.Windows.Media.SolidColorBrush)app.FindResource("CanvasBrush")).Color == System.Windows.Media.Color.FromRgb(0xFA, 0xFA, 0xF9),
+            "Light theme preference overrides Windows setting");
 
         vm.CanvasWidth = 1920;
         vm.CanvasHeight = 1080;
@@ -64,7 +74,7 @@ internal static partial class PreviewDiagnostics
         await File.WriteAllTextAsync(report, JsonSerializer.Serialize(new { Success = true, SettingsPath = store.SettingsPath, Checks = new[]
         {
             "Window size and last visible position", "Output settings", "Timeline height and zoom ratio", "Inspector width and resize limits", "Timeline time slots and control spacing",
-            "Atomic JSON save and load", "Damaged or incomplete JSON fallback"
+            "Theme preference toggle and save", "Atomic JSON save and load", "Damaged or incomplete JSON fallback"
         } }, JsonOptions));
         Directory.Delete(Path.GetDirectoryName(store.SettingsPath)!, recursive: true);
     }

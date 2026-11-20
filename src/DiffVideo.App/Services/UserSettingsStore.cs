@@ -13,7 +13,11 @@ internal sealed record UserSettings
     public OutputUserSettings Output { get; init; } = new();
     public TimelineUserSettings Timeline { get; init; } = new();
     public string? LastExportDirectory { get; init; }
+    public ThemePreference Theme { get; init; }
 }
+
+/// <summary>System은 Windows 설정의 앱 모드를 따른다.</summary>
+internal enum ThemePreference { System, Light, Dark }
 
 internal sealed record WindowUserSettings
 {

@@ -139,6 +139,9 @@
     {
       "key": "Icon.ViewTimeline",
       "source": "https://raw.githubusercontent.com/google/material-design-icons/84ccef280841abfac506afc4ad4a2782f6d0a1d0/src/action/view_timeline/materialiconsround/24px.svg"
-    }
+    },
+    {"key": "Icon.BrightnessAuto", "source": "https://raw.githubusercontent.com/google/material-design-icons/84ccef280841abfac506afc4ad4a2782f6d0a1d0/src/device/brightness_auto/materialiconsround/24px.svg"},
+    {"key": "Icon.LightMode", "source": "https://raw.githubusercontent.com/google/material-design-icons/84ccef280841abfac506afc4ad4a2782f6d0a1d0/src/device/light_mode/materialiconsround/24px.svg"},
+    {"key": "Icon.DarkMode", "source": "https://raw.githubusercontent.com/google/material-design-icons/84ccef280841abfac506afc4ad4a2782f6d0a1d0/src/device/dark_mode/materialiconsround/24px.svg"}
   ]
 }

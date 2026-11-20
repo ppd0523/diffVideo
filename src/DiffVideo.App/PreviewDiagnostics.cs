@@ -75,7 +75,8 @@ internal static partial class PreviewDiagnostics
                 Window = new() { Width = 1280, Height = 780, InspectorWidth = 300, Left = 80, Top = 60 },
                 Output = new() { Width = 1280, Height = 720, FramesPerSecond = 25, DurationSeconds = 19, Quality = OutputQuality.High },
                 Timeline = new() { Height = 300, ZoomRatio = 4 },
-                LastExportDirectory = settingsDirectory
+                LastExportDirectory = settingsDirectory,
+                Theme = ThemePreference.Dark
             });
         }
         Window window = mode is "checks" or "ui" or "features" or "roi" or "placement" or "export-range" or "layers" or "settings"

@@ -56,7 +56,10 @@ public partial class MainWindow : Window
     {
         _settingsStore = settingsStore;
         _userSettings = settingsStore?.Load() ?? new();
+        // 컨트롤을 만들기 전에 적용해야 밝은 화면이 한 번 비쳤다가 바뀌지 않는다
+        (Application.Current as App)?.SetThemePreference(_userSettings.Theme);
         InitializeComponent();
+        UpdateThemeToggle();
         RestoreWindowSettings(_userSettings.Window);
         try
         {
