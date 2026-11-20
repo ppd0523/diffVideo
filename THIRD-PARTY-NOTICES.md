@@ -11,7 +11,8 @@ The portable package uses the LGPL build of FFmpeg from BtbN/FFmpeg-Builds:
 - Build release: `autobuild-2026-10-14-13-03`
 - Archive: `ffmpeg-n9.0.2-27-g7e93014c5b-win64-lgpl-9.0.zip`
 - SHA-256: `395B6B0E621716CE5FC263AF6388E2F35FDFE0D05A5D3F26E1E2AAD09CC43D7F`
-- Binary source: https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2026-10-14-13-03
+- Binary source: https://github.com/ppd0523/diffVideo/releases/tag/deps-ffmpeg-n9.0.2-27
+  (an unmodified copy of the BtbN build above, which BtbN no longer hosts)
 - FFmpeg source revision: https://github.com/FFmpeg/FFmpeg/commit/7e93014c5b
 - Build scripts: https://github.com/BtbN/FFmpeg-Builds
 

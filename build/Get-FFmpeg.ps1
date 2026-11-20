@@ -12,7 +12,8 @@ $Destination = [System.IO.Path]::GetFullPath($Destination)
 $version = 'n9.0.2-27-g7e93014c5b'
 $archiveName = 'ffmpeg-n9.0.2-27-g7e93014c5b-win64-lgpl-9.0.zip'
 $expectedHash = '395B6B0E621716CE5FC263AF6388E2F35FDFE0D05A5D3F26E1E2AAD09CC43D7F'
-$url = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-10-14-13-03/' + $archiveName
+# BtbN은 매일 빌드를 2주쯤 뒤 지우므로, 원본(autobuild-2026-10-14-13-03)을 이 저장소 릴리스에 그대로 보관해 두고 받는다
+$url = 'https://github.com/ppd0523/diffVideo/releases/download/deps-ffmpeg-n9.0.2-27/' + $archiveName
 $downloadDirectory = Join-Path $projectRoot 'tools\downloads'
 $archivePath = Join-Path $downloadDirectory $archiveName
 $extractDirectory = Join-Path $projectRoot 'tools\ffmpeg-extract'
